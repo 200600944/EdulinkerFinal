@@ -3,9 +3,11 @@ import { isAdmin, isProfessor, isStudent } from '../services/auth.Service';
 import Register from './Register';
 import ProfessorChat from './ProfessorChat';
 import StudentChat from './StudentChat';
+import Dashboard from './Dashboard';
+import Lobby from './Loby';
 
 function Home() {
-  const [activeTab, setActiveTab] = useState('canvas');
+  const [activeTab, setActiveTab] = useState('BemVindo');
   const [userAdmin, setUserAdmin] = useState(false);
   const [userProfessor, setUserProfessor] = useState(false);
   const [userStudent, setUserStudent] = useState(false);
@@ -57,10 +59,16 @@ function Home() {
 
         <nav className="flex-1 p-4 space-y-2">
           <button
-            onClick={() => setActiveTab('canvas')}
-            className={`w-full flex items-center p-3 rounded-lg transition-all duration-200 ${activeTab === 'canvas' ? 'bg-blue-600 shadow-md' : 'hover:bg-blue-700'}`}
+            onClick={() => setActiveTab('BemVindo')}
+            className={`w-full flex items-center p-3 rounded-lg transition-all duration-200 ${activeTab === 'BemVindo' ? 'bg-blue-600 shadow-md' : 'hover:bg-blue-700'}`}
           >
-            <span className="mr-3 text-xl">🎨</span> Quadro Branco
+            <span className="mr-3 text-xl"></span> Bem Vindo
+          </button>
+          <button
+            onClick={() => setActiveTab('loby')}
+            className={`w-full flex items-center p-3 rounded-lg transition-all duration-200 ${activeTab === 'loby' ? 'bg-blue-600 shadow-md' : 'hover:bg-blue-700'}`}
+          >
+            <span className="mr-3 text-xl">🎨</span> Salas de aula
           </button>
 
           <button
@@ -70,12 +78,12 @@ function Home() {
             <span className="mr-3 text-xl">📂</span> Meus Ficheiros
           </button>
 
-          <button
+          {/* <button
             onClick={() => setActiveTab('chat')}
             className={`w-full flex items-center p-3 rounded-lg transition-all duration-200 ${activeTab === 'chat' ? 'bg-blue-600 shadow-md' : 'hover:bg-blue-700'}`}
           >
             <span className="mr-3 text-xl">💬</span> Chat / Sockets
-          </button>
+          </button> */}
 
           {/* BOTÃO DE REGISTO - Só visível para Admin */}
           {userAdmin && (
@@ -134,13 +142,12 @@ function Home() {
           <div className="flex items-center space-x-6">
             <div className="hidden md:flex flex-col items-end">
               <span className="text-sm font-bold text-gray-700">{userData.nome}</span>
-              <span className={`text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-md ${
-                  userAdmin ? 'bg-red-100 text-red-700' : 
-                  userProfessor ? 'bg-green-100 text-green-700' : 
-                  'bg-blue-100 text-blue-700'
+              <span className={`text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-md ${userAdmin ? 'bg-red-100 text-red-700' :
+                  userProfessor ? 'bg-green-100 text-green-700' :
+                    'bg-blue-100 text-blue-700'
                 }`}>
-                  {roleLabels[userData.role] || 'Utilizador'}
-                </span>
+                {roleLabels[userData.role] || 'Utilizador'}
+              </span>
             </div>
             <div className="w-10 h-10 rounded-full bg-blue-600 flex items-center justify-center text-white font-bold shadow-sm border-2 border-white">
               {userData.nome.charAt(0).toUpperCase()}
@@ -151,17 +158,18 @@ function Home() {
         {/* Área de Conteúdo Dinâmico */}
         <section className="flex-1 p-8 overflow-auto bg-gray-50">
 
-          {/* Aba: Canvas */}
-          {activeTab === 'canvas' && (
+          {/* Aba: Bem Vindo */}
+          {activeTab === 'Bemvindo' && (
             <div className="w-full h-full bg-white rounded-2xl shadow-xl border-2 border-dashed border-gray-200 flex items-center justify-center relative group hover:border-blue-300 transition-colors">
               <div className="text-center">
                 <div className="text-6xl mb-4">✍️</div>
-                <p className="text-gray-500 text-xl font-medium mb-6">Área do Canvas API Pronta</p>
-                <button className="bg-blue-600 text-white px-8 py-3 rounded-full font-semibold shadow-lg hover:bg-blue-700 hover:scale-105 transition-all duration-200">
-                  Iniciar Novo Desenho
-                </button>
+
               </div>
             </div>
+          )}
+          {/* Aba: Loby */}
+          {activeTab === 'loby' && (
+                <Lobby />
           )}
 
           {/* Aba: Files */}
@@ -175,7 +183,7 @@ function Home() {
             </div>
           )}
 
-          {/* Aba: Chat */}
+          {/* Aba: Chat
           {activeTab === 'chat' && (
             <div className="h-full flex flex-col bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden">
               <div className="flex-1 overflow-y-auto p-6 space-y-4 bg-gray-50">
@@ -188,27 +196,27 @@ function Home() {
                 <button className="bg-blue-600 text-white px-6 py-3 rounded-xl font-bold">Enviar</button>
               </div>
             </div>
-          )}
+          )} */}
 
           {/* Aba: REGISTO (Só para Admin) */}
           {activeTab === 'register' && userAdmin && (
-           
-              <Register />
-           
+
+            <Register />
+
           )}
 
-           {/* Aba: para responder a duvidas dos alunos (Só para Professor)*/}
+          {/* Aba: para responder a duvidas dos alunos (Só para Professor)*/}
           {activeTab === 'professorchat' && userProfessor && (
-            
-              <ProfessorChat />
-            
+
+            <ProfessorChat />
+
           )}
 
-           {/* Aba: para fazer perguntas asos professores (Só para Alunos)*/}
+          {/* Aba: para fazer perguntas asos professores (Só para Alunos)*/}
           {activeTab === 'studentchat' && userStudent && (
-           
-              <StudentChat />
-           
+
+            <StudentChat />
+
           )}
 
         </section>

@@ -13,7 +13,8 @@ export default defineConfig({
         register: resolve(__dirname, 'views/register.html'),
         home: resolve(__dirname, 'views/home.html'),
         professorchat: resolve(__dirname, 'views/professorchat.html'),
-        studentchat: resolve(__dirname, 'views/studentchat.html')
+        studentchat: resolve(__dirname, 'views/studentchat.html'),
+        loby: resolve(__dirname, 'views/loby.html')
       },
     },
   },
