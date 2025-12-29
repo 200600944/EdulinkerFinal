@@ -2,6 +2,7 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import { useChat } from '../hooks/useChat';
 import { authService } from '../services/auth.Service';
 import DrawingCanvas from './DrawingCanvas';
+import GlobalChat from './GlobalChat';
 
 function Lobby() {
     const [authorized, setAuthorized] = useState(false);
@@ -13,7 +14,7 @@ function Lobby() {
     const isProfessor = user.role === 'professor';
 
     // Adicionado onlineUsers que vem do teu hook useChat atualizado
-    const { mensagens, salaAtiva, setSalaAtiva, enviarMensagem, onlineUsers } = useChat();
+    const { mensagens, salaAtiva, setSalaAtiva, enviarMensagem, onlineUsers, socket } = useChat();
     const [rooms, setrooms] = useState([]);
     const [texto, setTexto] = useState("");
     const messagesEndRef = useRef(null);
@@ -28,6 +29,7 @@ function Lobby() {
     }, [user.id]);
 
     useEffect(() => {
+        debugger
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
     }, [mensagens]);
 
@@ -71,12 +73,13 @@ function Lobby() {
         setTexto("");
     };
 
-    const handleSairDaAula = () => {
-        if (salaAtiva) {
-            const { socket } = useChat;
-        }
-        setSalaAtiva(null);
-    };
+   const handleSairDaAula = () => {
+    if (salaAtiva && socket) {
+        // Agora o socket já existe aqui porque veio do hook lá em cima
+        socket.emit('leave_room', { roomId: salaAtiva.room_id, userId: user.id });
+    }
+    setSalaAtiva(null);
+};
 
 
     useEffect(() => {
@@ -168,7 +171,7 @@ function Lobby() {
                             <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-4">Presentes</h3>
                             <div className="space-y-3">
                                 {onlineUsers?.map((u) => (
-                                    <div key={u.userId} className="flex items-center gap-2 group">
+                                    <div key={u.id || u.socketId} className="flex items-center gap-2 group">
                                         <div className={`h-8 w-8 rounded-full flex items-center justify-center font-bold text-xs shadow-sm border-2 border-white ${u.role === 'professor' ? 'bg-purple-600 text-white' : 'bg-blue-500 text-white'}`}>
                                             {u.nome?.charAt(0).toUpperCase()}
                                         </div>
@@ -184,36 +187,19 @@ function Lobby() {
                         {/* Lado Central: Quadro de Desenho */}
                         <div className="flex-[2] bg-gray-200 p-4 border-r overflow-hidden flex flex-col">
                             <div className="bg-white rounded-xl shadow-inner h-full overflow-hidden border-2 border-gray-300">
-                                <DrawingCanvas salaId={salaAtiva.room_id} />
+                              <DrawingCanvas salaId={salaAtiva.room_id} socket={socket} userRole={user.role}/>
                             </div>
                         </div>
 
                         {/* Lado Direito: Chat da Sala */}
-                        <div className="flex-1 flex flex-col bg-gray-50 max-w-[400px]">
-                            <div className="flex-1 p-4 overflow-y-auto space-y-3">
-                                {mensagens.map((msg, idx) => {
-                                    const isMe = Number(msg.user_id) === Number(user.id);
-                                    return (
-                                        <div key={idx} className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}>
-                                            <div className={`p-3 rounded-2xl shadow-sm max-w-[90%] ${isMe ? 'bg-blue-600 text-white rounded-tr-none' : 'bg-white border border-gray-200 text-gray-800 rounded-tl-none'}`}>
-                                                <span className={`text-[9px] font-bold block mb-1 uppercase ${isMe ? 'text-blue-100' : 'text-gray-400'}`}>
-                                                    {isMe ? 'Eu' : (msg.user_nome || 'Utilizador')}
-                                                </span>
-                                                <p className="text-sm font-medium leading-tight">{msg.content}</p>
-                                            </div>
-                                        </div>
-                                    );
-                                })}
-                                <div ref={messagesEndRef} />
-                            </div>
-
-                            <form onSubmit={handleSend} className="p-4 bg-white border-t flex gap-2">
-                                <input className="flex-1 p-2 bg-gray-50 border rounded-xl outline-none text-sm focus:ring-2 focus:ring-blue-500" placeholder="Escrever..." value={texto} onChange={(e) => setTexto(e.target.value)} />
-                                <button type="submit" className="bg-blue-600 text-white px-4 py-2 rounded-xl font-bold text-sm hover:bg-blue-700 transition-all active:scale-95">
-                                    Enviar
-                                </button>
-                            </form>
-                        </div>
+                        <GlobalChat
+                            mensagens={mensagens}
+                            user={user}
+                            texto={texto}
+                            setTexto={setTexto}
+                            handleSend={handleSend}
+                            messagesEndRef={messagesEndRef}
+                        />
                     </div>
                 </div>
             )}

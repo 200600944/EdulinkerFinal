@@ -19,7 +19,10 @@ export class ChatGateway {
     @WebSocketServer()
     server: Server;
 
+    //Aqui vem a lista de utilizadores que estao nas salsa de aulas
     private usersInRooms: Map<string, any[]> = new Map();
+    //Aqui guarda o historico do que foi desenhado no canvas
+    private canvasHistory: Map<string, any[]> = new Map();
 
     constructor(
         @InjectRepository(Message)
@@ -37,10 +40,8 @@ export class ChatGateway {
 
         client.join(roomIdStr);
 
-        // Adicionar utilizador à memória do Gateway
+        // --- LÓGICA DE UTILIZADORES ---
         let users = this.usersInRooms.get(roomIdStr) || [];
-
-        // Evitar duplicados (caso o utilizador faça refresh)
         if (!users.find(u => u.id === user.id)) {
             users.push({
                 id: user.id,
@@ -49,15 +50,18 @@ export class ChatGateway {
                 socketId: client.id
             });
         }
-
         this.usersInRooms.set(roomIdStr, users);
+
+        // Procuramos se já existem linhas desenhadas nesta sala
+        const history = this.canvasHistory.get(roomIdStr) || [];
+        // Enviamos o histórico APENAS para o cliente que acabou de entrar
+        client.emit('canvas_history', history);
 
         console.log(`Utilizador ${user.nome} entrou na sala: ${roomIdStr}`);
 
-        // Enviar a lista atualizada para todos na sala
+        // Enviar a lista de utilizadores para todos
         this.server.to(roomIdStr).emit('update_user_list', users);
     }
-
 
     @SubscribeMessage('leave_room')
     handleLeaveRoom(
@@ -120,5 +124,34 @@ export class ChatGateway {
         // Envia a mensagem para quem está dentro da sala aberta
         // Importante: o .to() precisa do ID exato (string ou number) que foi usado no join_room
         this.server.to(data.room_id.toString()).emit('receive_message', mensagemSalva);
+    }
+
+    // Reenvia a linha para todos na sala, exceto para quem desenhou
+    @SubscribeMessage('draw_line')
+    handleDrawLine(@MessageBody() data: any) {
+        // Validação simples (Ignora se não for professor)
+        if (data.userRole?.toLowerCase() !== 'professor') {
+            return;
+        }
+
+        const roomIdStr = data.roomId.toString();
+
+        //Guardar no histórico
+        let history = this.canvasHistory.get(roomIdStr) || [];
+        history.push(data.line);
+        this.canvasHistory.set(roomIdStr, history);
+
+        //Enviar para TODOS na sala
+        this.server.to(roomIdStr).emit('draw_line', data.line);
+    }
+
+    //Limpa o camvas
+    @SubscribeMessage('clear_canvas')
+    handleClearCanvas(@MessageBody() data: { roomId: any, userRole: string }) {
+        if (data.userRole?.toLowerCase() !== 'professor') return;
+        const roomIdStr = data.roomId.toString();
+        // Limpar o histórico no servidor
+        this.canvasHistory.set(roomIdStr, []);
+        this.server.to(roomIdStr).emit('clear_canvas');
     }
 }

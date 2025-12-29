@@ -3,7 +3,6 @@ import { isAdmin, isProfessor, isStudent } from '../services/auth.Service';
 import Register from './Register';
 import ProfessorChat from './ProfessorChat';
 import StudentChat from './StudentChat';
-import Dashboard from './Dashboard';
 import Lobby from './Loby';
 
 function Home() {
@@ -78,13 +77,7 @@ function Home() {
             <span className="mr-3 text-xl">📂</span> Meus Ficheiros
           </button>
 
-          {/* <button
-            onClick={() => setActiveTab('chat')}
-            className={`w-full flex items-center p-3 rounded-lg transition-all duration-200 ${activeTab === 'chat' ? 'bg-blue-600 shadow-md' : 'hover:bg-blue-700'}`}
-          >
-            <span className="mr-3 text-xl">💬</span> Chat / Sockets
-          </button> */}
-
+       
           {/* BOTÃO DE REGISTO - Só visível para Admin */}
           {userAdmin && (
             <button
@@ -216,21 +209,6 @@ function Home() {
               </div>
             </div>
           )}
-
-          {/* Aba: Chat
-          {activeTab === 'chat' && (
-            <div className="h-full flex flex-col bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden">
-              <div className="flex-1 overflow-y-auto p-6 space-y-4 bg-gray-50">
-                <div className="bg-blue-100 text-blue-700 p-4 rounded-xl rounded-tl-none max-w-xs shadow-sm">
-                  Olá! Bem-vindo ao chat.
-                </div>
-              </div>
-              <div className="p-4 bg-white border-t border-gray-100 flex space-x-3">
-                <input type="text" className="flex-1 border border-gray-200 p-3 rounded-xl outline-none" placeholder="Mensagem..." />
-                <button className="bg-blue-600 text-white px-6 py-3 rounded-xl font-bold">Enviar</button>
-              </div>
-            </div>
-          )} */}
 
           {/* Aba: REGISTO (Só para Admin) */}
           {activeTab === 'register' && userAdmin && (
