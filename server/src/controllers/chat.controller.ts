@@ -2,7 +2,8 @@ import { Controller, Get, Post, Param, Body, InternalServerErrorException, BadRe
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Message } from '../entities/message.entity';
-import { Room } from '../entities/room.entity';
+import { Room, RoomType } from '../entities/room.entity';
+
 
 @Controller('chat')
 export class ChatController {
@@ -43,7 +44,7 @@ export class ChatController {
         return await this.mensageRepo.find();
     }
 
-    // 2. Rota para carregar o histórico de uma sala específica ao clicar em "Responder"
+    //carregar o histórico de uma sala específica ao clicar em "Responder"
     @Get('messages/:roomId')
     async getChatHistory(@Param('roomId') roomId: string) {
         try {
@@ -74,7 +75,7 @@ export class ChatController {
         }
     }
 
-    // 3. Rota para o Aluno ver as suas próprias salas
+    //Lista salas de duvidas do aluno 
     @Get('student-rooms/:userId')
     async getStudentRooms(@Param('userId') userId: number) {
         return await this.roomRepo.query(`
@@ -98,19 +99,21 @@ export class ChatController {
   `);
     }
 
-    // 4. Rota para criar uma nova mensagem (Início de chat)
+    //criar uma nova mensagem (Início de chat)
     @Post('send')
     async sendMessage(@Body() body: any) {
         const newMessage = this.mensageRepo.create(body);
         return await this.mensageRepo.save(newMessage);
     }
 
+    //Criar sala
     @Post('create-room')
-    async createRoom(@Body() data: { name: string, owner_id: number }) {
+    async createRoom(@Body() data: { name: string, owner_id: number, room_type: string }) {
         // 1. Cria a sala na tabela 'rooms'
         const newRoom = this.roomRepo.create({
             name: data.name,
             owner_id: data.owner_id,
+            room_type: data.room_type as RoomType,
             is_active: true
         });
 
@@ -118,4 +121,21 @@ export class ChatController {
 
         return savedRoom;
     }
+
+    //Lista salas de Aula
+    @Get('class-rooms')
+        async getClassRooms() {
+            return await this.roomRepo.query(`
+                SELECT 
+                    id AS room_id, 
+                    name AS room_name, 
+                    room_type AS room_type,
+                    is_active AS room_is_active,
+                    owner_id AS room_created_by,        
+                    created_at AS room_created_at       
+                FROM rooms 
+                WHERE room_type = 'class' AND is_active = 1
+                ORDER BY created_at DESC;
+            `);
+        }
 }

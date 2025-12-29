@@ -19,6 +19,8 @@ export class ChatGateway {
     @WebSocketServer()
     server: Server;
 
+    private usersInRooms: Map<string, any[]> = new Map();
+
     constructor(
         @InjectRepository(Message)
         private readonly mensagemRepo: Repository<Message>,
@@ -26,10 +28,57 @@ export class ChatGateway {
 
     // 1. Quando o utilizador (Professor ou Aluno) abre o chat, entra numa sala específica
     @SubscribeMessage('join_room')
-    handleJoinRoom(@MessageBody() roomId: string, @ConnectedSocket() client: Socket) {
-        client.join(roomId);
-        console.log(`Cliente ${client.id} entrou na sala: ${roomId}`);
+    handleJoinRoom(
+        @MessageBody() data: { roomId: string, user: any },
+        @ConnectedSocket() client: Socket
+    ) {
+        const { roomId, user } = data;
+        const roomIdStr = roomId.toString();
+
+        client.join(roomIdStr);
+
+        // Adicionar utilizador à memória do Gateway
+        let users = this.usersInRooms.get(roomIdStr) || [];
+
+        // Evitar duplicados (caso o utilizador faça refresh)
+        if (!users.find(u => u.id === user.id)) {
+            users.push({
+                id: user.id,
+                nome: user.nome,
+                role: user.role,
+                socketId: client.id
+            });
+        }
+
+        this.usersInRooms.set(roomIdStr, users);
+
+        console.log(`Utilizador ${user.nome} entrou na sala: ${roomIdStr}`);
+
+        // Enviar a lista atualizada para todos na sala
+        this.server.to(roomIdStr).emit('update_user_list', users);
     }
+
+
+    @SubscribeMessage('leave_room')
+    handleLeaveRoom(
+        @MessageBody() data: { roomId: string, userId: number },
+        @ConnectedSocket() client: Socket
+    ) {
+        const roomIdStr = data.roomId.toString();
+        client.leave(roomIdStr);
+
+        let users = this.usersInRooms.get(roomIdStr) || [];
+        // Remove o utilizador da lista pelo ID
+        users = users.filter(u => u.id !== data.userId);
+
+        this.usersInRooms.set(roomIdStr, users);
+
+        // Avisa os que ficaram na sala que a lista mudou
+        this.server.to(roomIdStr).emit('update_user_list', users);
+
+        console.log(`Utilizador ${data.userId} saiu manualmente da sala: ${roomIdStr}`);
+    }
+
 
     // 2. Quando alguém envia uma mensagem
     @SubscribeMessage('send_message')

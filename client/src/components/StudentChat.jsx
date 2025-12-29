@@ -59,7 +59,8 @@ function StudentChat() {
   const iniciarNovaDuvida = async () => {
     const payload = {
       name: `Dúvida de ${user.nome}`,
-      owner_id: user.id
+      owner_id: user.id,
+      room_type:'chat'
     };
 
     try {

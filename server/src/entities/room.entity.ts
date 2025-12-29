@@ -1,4 +1,9 @@
 import { Entity, Column, PrimaryGeneratedColumn,CreateDateColumn } from 'typeorm';
+export enum RoomType {
+  CLASS = 'class',
+  CHAT = 'chat',
+}
+
 
 @Entity('rooms')
 export class Room {
@@ -7,6 +12,13 @@ export class Room {
 
   @Column()
   name: string;
+
+  @Column({
+    type: 'enum',
+    enum:RoomType,
+    default: RoomType.CHAT
+  })
+  room_type: RoomType;
 
   @Column()
   owner_id: number; // ID do aluno que criou
