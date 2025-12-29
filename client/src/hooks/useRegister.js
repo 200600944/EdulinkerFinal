@@ -1,5 +1,6 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef,useCallback } from 'react';
 import { registerUser, validateEmail } from '../services/auth.Service';
+import { authService } from '../services/auth.Service';
 
 export function useRegister() {
     const [roles, setRoles] = useState([]);
@@ -8,30 +9,16 @@ export function useRegister() {
     const [authorized, setAuthorized] = useState(false);
     const [status, setStatus] = useState({ message: '', type: '' });
     const [submitting, setSubmitting] = useState(false);
-    const hasAlerted = useRef(false);
+    const [users, setUsers] = useState([]);
 
-    // useEffect(() => {
-    //     const initializePage = async () => {
-    //         if (!isAdmin() && !hasAlerted.current) {
-    //             hasAlerted.current = true;
-    //             alert("Acesso negado! Apenas administradores podem aceder a esta página.");
-    //             window.location.href = '/views/index.html';
-    //             return;
-    //         }
-    //         setAuthorized(true);
-    //         try {
-    //             const response = await fetch(`${import.meta.env.VITE_API_URL}/auth/roles`);
-    //             if (!response.ok) throw new Error('Erro ao carregar perfis');
-    //             const data = await response.json();
-    //             setRoles(data);
-    //         } catch (error) {
-    //             setStatus({ message: 'Erro ao carregar cargos.', type: 'error' });
-    //         } finally {
-    //             setLoading(false);
-    //         }
-    //     };
-    //     initializePage();
-    // }, []);
+    const loadUsers = useCallback(async () => {
+        try {
+            const data = await authService.getUsers();
+            setUsers(data);
+        } catch (error) {
+            console.error("Erro ao carregar utilizadores:", error);
+        }
+    }, []);
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -66,6 +53,7 @@ export function useRegister() {
             await registerUser(formData);
             setStatus({ message: 'Utilizador criado com sucesso!', type: 'success' });
             setFormData({ nome: '', email: '', password: '', role_id: '' });
+            await loadUsers();
         } catch (error) {
             setStatus({ message: error.message || 'Erro na criação.', type: 'error' });
         } finally {
@@ -86,6 +74,8 @@ export function useRegister() {
         setRoles,
         setLoading,
         setAuthorized,
-        setStatus
+        setStatus,
+        users,
+        loadUsers
     };
 }

@@ -72,4 +72,11 @@ export class UserController {
         // Vamos buscar todas as roles diretamente do repositório
         return await this.roleRepository.find();
     }
+
+    //Users
+    @Get('users') // Isto cria a rota http://localhost:3000/auth/roles (se o prefixo for auth)
+    async getUsers() {
+        // Vamos buscar todas as roles diretamente do repositório
+        return await this.userRepository.find({relations: ['role']});
+    }
 }

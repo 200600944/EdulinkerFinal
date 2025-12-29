@@ -90,6 +90,16 @@ export const authService = {
         } finally {
             if (setLoading) setLoading(false);
         }
+    },
+
+    async getUsers() {
+        const response = await fetch(`${API_URL}/users`, { // Ajusta a rota conforme o teu NestJS
+            headers: {
+                'Authorization': `Bearer ${localStorage.getItem('token')}`
+            }
+        });
+        if (!response.ok) throw new Error('Erro ao listar utilizadores');
+        return response.json();
     }
 };
 
@@ -108,3 +118,5 @@ export const isStudent = () => {
   const user = JSON.parse(localStorage.getItem('user'));
   return user && user.role === 'aluno';
 };
+
+

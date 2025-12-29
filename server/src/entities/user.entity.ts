@@ -16,7 +16,7 @@ export class User {
   password: string;
 
   @ManyToOne(() => Role)
-  @JoinColumn({ name: 'role_id' }) // Diz ao TypeORM que a coluna física se chama role_id
+  @JoinColumn({ name: 'role_id' }) 
   role: Role;
 
   @Column({ name: 'role_id', nullable: true })
