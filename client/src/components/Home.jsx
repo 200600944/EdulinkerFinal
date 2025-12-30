@@ -63,21 +63,27 @@ function Home() {
           >
             <span className="mr-3 text-xl"></span> Bem Vindo
           </button>
-          <button
-            onClick={() => setActiveTab('loby')}
-            className={`w-full flex items-center p-3 rounded-lg transition-all duration-200 ${activeTab === 'loby' ? 'bg-blue-600 shadow-md' : 'hover:bg-blue-700'}`}
-          >
-            <span className="mr-3 text-xl">🏫</span> Salas de aula
-          </button>
 
+          {/* BOTÃO DE Loby - Só visível para Alunos e Professores */}
+          {(userProfessor || userStudent) && (
+            <button
+              onClick={() => setActiveTab('loby')}
+              className={`w-full flex items-center p-3 rounded-lg transition-all duration-200 ${activeTab === 'loby' ? 'bg-blue-600 shadow-md' : 'hover:bg-blue-700'}`}
+            >
+              <span className="mr-3 text-xl">🏫</span> Salas de aula
+            </button>
+          )}
+
+          {/* BOTÃO DE Ficheiros - Só visível para Alunos e Professores */}
+          {(userProfessor || userStudent) && (
           <button
             onClick={() => setActiveTab('files')}
             className={`w-full flex items-center p-3 rounded-lg transition-all duration-200 ${activeTab === 'files' ? 'bg-blue-600 shadow-md' : 'hover:bg-blue-700'}`}
           >
             <span className="mr-3 text-xl">📂</span> Meus Ficheiros
           </button>
+          )}
 
-       
           {/* BOTÃO DE REGISTO - Só visível para Admin */}
           {userAdmin && (
             <button
@@ -191,11 +197,11 @@ function Home() {
 
               </div>
 
-             
+
             </div>
           )}
           {/* Aba: Loby */}
-          {activeTab === 'loby' && (
+          {activeTab === 'loby' && (userProfessor || userStudent) && (
             <Lobby />
           )}
 

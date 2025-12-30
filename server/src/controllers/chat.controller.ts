@@ -39,6 +39,7 @@ export class ChatController {
             ) m2 ON m.room_id = m2.room_id AND m.created_at = m2.ultima
             INNER JOIN rooms r on r.id=m.room_id
             INNER JOIN users u ON r.owner_id = u.id
+            where r.room_type='chat'
             ORDER BY m.created_at DESC;
         `);
         return await this.mensageRepo.find();

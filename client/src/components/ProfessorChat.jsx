@@ -1,46 +1,35 @@
-import { useState, useRef, useEffect } from 'react';
-import { useChat } from '../hooks/useChat';
-import { authService } from '../services/auth.Service';
+import { useRef, useEffect } from 'react';
+import { useProfessorChat } from '../hooks/useProfessorChat';
 
 function ProfessorChat() {
-    // Estados para controlo de acesso (semelhante ao register)
-    const [authorized, setAuthorized] = useState(false);
-    const [loading, setLoading] = useState(true);
-    const hasAlerted = useRef(false);
-    const userLogado = JSON.parse(localStorage.getItem('user') || '{}');
-    const nomeDoProfessor = userLogado.nome || 'Professor';
-    // Extraímos toda a lógica do nosso Hook personalizado
-    const { conversas, mensagens, salaAtiva, setSalaAtiva, enviarMensagem } = useChat();
-    const [texto, setTexto] = useState("");
+  const {
+        authorized,
+        loading,
+        conversas,
+        mensagens,
+        salaAtiva,
+        setSalaAtiva,
+        texto,
+        setTexto,
+        handleSend,
+        user,
+        nomeDoProfessor
+    } = useProfessorChat();
+
     const messagesEndRef = useRef(null);
 
-    //Validação de acesso a pagina
-    useEffect(() => {
-        authService.initializePage({
-            checkFunc: authService.isProfessor,
-            hasAlertedRef: hasAlerted,
-            setAuthorized,
-            setLoading,
-        });
-    }, []);
-
-    //Scroll automático sempre que o array de mensagens mudar
+    // O scroll automático permanece no componente (manipulação de DOM)
     useEffect(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
     }, [mensagens]);
 
-    // Função para lidar com o envio da mensagem
-    const handleSend = (e) => {
-        e.preventDefault();
-        if (!texto.trim() || !salaAtiva) return;
+    if (loading) return (
+        <div className="min-h-screen flex items-center justify-center bg-gray-100">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+        </div>
+    );
 
-        const user = JSON.parse(localStorage.getItem('user') || '{}');
-
-        // Passamos o texto, o ID do professor e o papel 'professor'
-        // O papel é importante para o backend saber que deve marcar a dúvida como respondida
-        enviarMensagem(texto, user.id, 'professor');
-        setTexto("");
-    };
+    if (!authorized) return null;
     return (
         <div className="w-full h-full bg-white rounded-2xl shadow-xl border-2 border-dashed border-gray-200 hover:border-blue-300 transition-colors">
             <div className="">
@@ -69,9 +58,9 @@ function ProfessorChat() {
                                     <div>
                                         <div className="flex items-center gap-3">
                                             <h3 className="font-bold text-gray-800 text-lg">{chat.aluno_nome}</h3>
-                                            {!chat.respondida && (
+                                            {!chat.is_ansured? (
                                                 <span className="bg-red-500 h-2.5 w-2.5 rounded-full animate-pulse shadow-[0_0_10px_rgba(239,68,68,0.5)]"></span>
-                                            )}
+                                            ):(<span className="bg-green-500 h-2.5 w-2.5 rounded-full animate-pulse shadow-[0_0_10px_rgba(239,68,68,0.5)]"></span>)}
                                         </div>
                                         <p className="text-gray-500 text-sm mt-0.5 truncate max-w-md italic">
                                             {chat.last_content || "Sem mensagens ainda..."}

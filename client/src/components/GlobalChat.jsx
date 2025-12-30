@@ -1,6 +1,3 @@
-// GlobalChat.jsx
-import React from 'react';
-
 function GlobalChat({ mensagens, user, texto, setTexto, handleSend, messagesEndRef }) {
   return (
     <div className="flex-1 flex flex-col bg-gray-50 max-w-[400px] border-l">

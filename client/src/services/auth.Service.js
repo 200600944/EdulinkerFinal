@@ -56,7 +56,7 @@ export const authService = {
     },
     isAdmin() { return this.getUser().role === 'admin'; },
     isProfessor() { return this.getUser().role === 'professor'; },
-    isAluno() { return this.getUser().role === 'aluno'; },
+    isStudent() { return this.getUser().role === 'aluno'; },
 
     // A FUNÇÃO GENÉRICA
     async initializePage({ 

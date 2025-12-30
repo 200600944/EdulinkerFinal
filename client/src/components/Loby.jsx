@@ -4,12 +4,14 @@ import { authService } from '../services/auth.Service';
 import DrawingCanvas from './DrawingCanvas';
 import GlobalChat from './GlobalChat';
 
-function Lobby() {
+
+function Loby() {
     const [authorized, setAuthorized] = useState(false);
     const [loading, setLoading] = useState(true);
     const hasAlerted = useRef(false);
     const API_BASE = import.meta.env.VITE_API_URL;
-
+    const [isCreating, setIsCreating] = useState(false);
+    const [novoNomeSala, setNovoNomeSala] = useState("");
     const user = JSON.parse(localStorage.getItem('user') || '{}');
     const isProfessor = user.role === 'professor';
 
@@ -21,7 +23,7 @@ function Lobby() {
 
     useEffect(() => {
         authService.initializePage({
-            checkFunc: () => !!user.id,
+            checkFunc: authService.isProfessor || authService.isStudent,
             hasAlertedRef: hasAlerted,
             setAuthorized,
             setLoading,
@@ -29,13 +31,17 @@ function Lobby() {
     }, [user.id]);
 
     useEffect(() => {
-        debugger
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
     }, [mensagens]);
 
     const handleCreateClass = async () => {
+        if (!novoNomeSala || novoNomeSala.trim() === "") {
+            alert("Por favor, insira um nome para a sala.");
+            return;
+        }
+
         const payload = {
-            name: `Aula de ${user.nome}`,
+            name: novoNomeSala,
             owner_id: user.id,
             room_type: 'class'
         };
@@ -48,6 +54,7 @@ function Lobby() {
             if (response.ok) {
                 const novaSala = await response.json();
                 if (carregarSalas) carregarSalas();
+                setIsCreating(false)
                 setSalaAtiva({ room_id: novaSala.id, room_name: novaSala.name, room_type: novaSala.room_type });
             }
         } catch (error) { console.error("Erro:", error); }
@@ -73,13 +80,13 @@ function Lobby() {
         setTexto("");
     };
 
-   const handleSairDaAula = () => {
-    if (salaAtiva && socket) {
-        // Agora o socket já existe aqui porque veio do hook lá em cima
-        socket.emit('leave_room', { roomId: salaAtiva.room_id, userId: user.id });
-    }
-    setSalaAtiva(null);
-};
+    const handleSairDaAula = () => {
+        if (salaAtiva && socket) {
+            // Agora o socket já existe aqui porque veio do hook lá em cima
+            socket.emit('leave_room', { roomId: salaAtiva.room_id, userId: user.id });
+        }
+        setSalaAtiva(null);
+    };
 
 
     useEffect(() => {
@@ -108,13 +115,48 @@ function Lobby() {
                     </div>
                     <div className="grid gap-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
                         {isProfessor && (
-                            <button
-                                onClick={handleCreateClass}
-                                className="group w-full p-6 bg-white border-2 border-dashed rounded-2xl flex items-center justify-center gap-3 text-blue-600 font-bold hover:border-blue-500 hover:bg-blue-50 transition-all shadow-sm"
-                            >
-                                <span className="text-2xl group-hover:scale-125 transition-transform">+</span>
-                                Criar uma nova sala de aula
-                            </button>
+                            <div className="w-full transition-all duration-300">
+                                {!isCreating ? (
+                                    /* BOTÃO INICIAL */
+                                    <button
+                                        onClick={() => {
+                                            setIsCreating(true);
+                                            setNovoNomeSala(`Aula de ${user.nome}`);
+                                        }}
+                                        className="group w-full p-6 bg-white border-2 border-dashed rounded-2xl flex items-center justify-center gap-3 text-blue-600 font-bold hover:border-blue-500 hover:bg-blue-50 transition-all shadow-sm"
+                                    >
+                                        <span className="text-2xl group-hover:scale-125 transition-transform">+</span>
+                                        Criar uma nova sala de aula
+                                    </button>
+                                ) : (
+                                    /* FORMULÁRIO DE NOME */
+                                    <div className="w-full p-6 bg-blue-50 border-2 border-blue-200 rounded-2xl animate-in zoom-in-95 duration-200">
+                                        <label className="block text-sm font-bold text-blue-800 mb-2">Nome da Sala de Aula:</label>
+                                        <div className="flex gap-3">
+                                            <input
+                                                autoFocus
+                                                type="text"
+                                                value={novoNomeSala}
+                                                onChange={(e) => setNovoNomeSala(e.target.value)}
+                                                className="flex-1 p-3 rounded-xl border-2 border-blue-100 outline-none focus:border-blue-500 transition-all font-medium"
+                                                placeholder="Ex: Aula de Matemática - 10ºA"
+                                            />
+                                            <button
+                                                onClick={handleCreateClass}
+                                                className="bg-blue-600 text-white px-6 py-3 rounded-xl font-bold hover:bg-blue-700 transition-all shadow-md"
+                                            >
+                                                Confirmar
+                                            </button>
+                                            <button
+                                                onClick={() => setIsCreating(false)}
+                                                className="bg-white text-gray-500 px-6 py-3 rounded-xl font-bold border border-gray-200 hover:bg-gray-100 transition-all"
+                                            >
+                                                Cancelar
+                                            </button>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
                         )}
                     </div>
                     <div className="grid gap-4 mt-4">
@@ -187,7 +229,7 @@ function Lobby() {
                         {/* Lado Central: Quadro de Desenho */}
                         <div className="flex-[2] bg-gray-200 p-4 border-r overflow-hidden flex flex-col">
                             <div className="bg-white rounded-xl shadow-inner h-full overflow-hidden border-2 border-gray-300">
-                              <DrawingCanvas salaId={salaAtiva.room_id} socket={socket} userRole={user.role}/>
+                                <DrawingCanvas salaId={salaAtiva.room_id} socket={socket} userRole={user.role} />
                             </div>
                         </div>
 
@@ -207,4 +249,4 @@ function Lobby() {
     );
 }
 
-export default Lobby;
+export default Loby;

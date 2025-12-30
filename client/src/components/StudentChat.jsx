@@ -1,102 +1,31 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
-import { useChat } from '../hooks/useChat';
-import { authService } from '../services/auth.Service';
+import { useRef, useEffect } from 'react';
+import { useStudentChat } from '../hooks/useStudentChat';
 
 function StudentChat() {
-  // Estados para controlo de acesso (semelhante ao register)
-  const [authorized, setAuthorized] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const hasAlerted = useRef(false);
+  const {
+    authorized, 
+    loading, 
+    conversas, 
+    mensagens, 
+    texto, 
+    setTexto,
+    salaAtiva, 
+    setSalaAtiva, 
+    iniciarNovaDuvida, 
+    handleSend, 
+    user, 
+    nomeDoAluno
+  } = useStudentChat();
 
-  // Hook customizado para lógica de Socket.io
-  const { mensagens, enviarMensagem, setSalaAtiva, salaAtiva } = useChat();
-  const [conversas, setConversas] = useState([]);
-  const [texto, setTexto] = useState("");
-
-  // Referência para o scroll automático
   const messagesEndRef = useRef(null);
 
-  const API_BASE = import.meta.env.VITE_API_URL;
-  const user = JSON.parse(localStorage.getItem('user') || '{}');
-
-  const userLogado = JSON.parse(localStorage.getItem('user') || '{}');
-  const nomeDoAluno = userLogado.nome || 'Aluno';
-
-  //Validação de acesso a pagina
-  useEffect(() => {
-    authService.initializePage({
-      checkFunc: authService.isAluno,
-      hasAlertedRef: hasAlerted,
-      setAuthorized,
-      setLoading,
-    });
-  }, []);
-
-  //Carrega as salas 
-  const carregarSalas = useCallback(async () => {
-    if (!user.id) return;
-    try {
-      const response = await fetch(`${API_BASE}/chat/student-rooms/${user.id}`);
-      if (response.ok) {
-        const data = await response.json();
-        setConversas(data);
-      }
-    } catch (error) {
-      console.error("Erro ao carregar salas do aluno:", error);
-    }
-  }, [user.id, API_BASE]);
-
-  useEffect(() => {
-    carregarSalas();
-  }, [carregarSalas]);
-
-  //Scroll automático sempre que o array de mensagens mudar
+  // Scroll automático
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [mensagens]);
 
-  //Criar uma nova sala fisicamente na BD
-  const iniciarNovaDuvida = async () => {
-    const payload = {
-      name: `Dúvida de ${user.nome}`,
-      owner_id: user.id,
-      room_type:'chat'
-    };
-
-    try {
-      const response = await fetch(`${API_BASE}/chat/create-room`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
-
-      if (response.ok) {
-        const novaSala = await response.json();
-
-        // Ativamos a sala com o ID real gerado pelo MySQL (novaSala.id)
-        setSalaAtiva({
-          room_id: novaSala.id,
-          room_name: novaSala.name,
-          aluno_nome: user.nome
-        });
-
-        // Recarrega a lista lateral para a nova sala aparecer
-        carregarSalas();
-      }
-    } catch (error) {
-      console.error("Erro ao criar sala na BD:", error);
-    }
-  };
-
-  // Envio de mensagem via Socket
-  const handleSend = (e) => {
-    e.preventDefault();
-    if (!texto.trim() || !salaAtiva) return;
-
-    // Passamos 'aluno' para o Gateway saber que is_ansured deve ser false
-    enviarMensagem(texto, user.id, 'aluno');
-    setTexto("");
-  };
+  if (loading) return <div>A carregar...</div>;
+  if (!authorized) return null;
 
   return (
     <div className="w-full h-full bg-white rounded-2xl shadow-xl border-2 border-dashed border-gray-200  hover:border-blue-300 transition-colors">
