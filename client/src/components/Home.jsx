@@ -134,7 +134,7 @@ function Home() {
             {activeTab === 'welcome' && 'Bem vindo'}
             {activeTab === 'loby' && 'Salas de Aula'}
             {activeTab === 'canvas' && 'Quadro Interativo'}
-            {activeTab === 'files' && 'Gestão de Ficheiros da Aula'}
+            {activeTab === 'shared_file' && 'Gestão de Ficheiros da Aula'}
             {activeTab === 'chat' && 'Comunicação em Tempo Real'}
             {activeTab === 'register' && 'Registo de Novo Utilizador'}
             {activeTab === 'studentchat' && 'As minhas Duvidas'}
@@ -207,7 +207,7 @@ function Home() {
           )}
 
           {/* Aba: Files */}
-          {activeTab === 'files' && (
+          {activeTab === 'shared_file' && (
            <FileManager/>
           )}
 

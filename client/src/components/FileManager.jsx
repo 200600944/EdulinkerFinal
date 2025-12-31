@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useLoby } from '../hooks/useLoby';
 import { useSharedFiles } from '../hooks/useSharedFiles';
-import { sharedFileService } from '../services/shared_file.service';
+import { sharedFilesService } from '../services/shared_files.service';
 
 function FileManager() {
   const { rooms, user, isProfessor, loading: loadingRooms } = useLoby();
@@ -87,9 +87,9 @@ function FileManager() {
                   
                   {/* TODOS (ALUNOS E PROFESSORES): Link de Download */}
                   <a 
-                    href={sharedFileService.getDownloadUrl(file.file_url)} 
+                    href={sharedFilesService.getDownloadUrl(file.file_url)} 
                     download={file.file_name}
-                    className="w-full py-4 bg-slate-900 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest text-center hover:bg-blue-600 transition-all shadow-lg flex items-center justify-center gap-2"
+                    className="w-full py-4 bg-blue-600 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest text-center hover:bg-blue-700 transition-all shadow-lg flex items-center justify-center gap-2"
                   >
                     <span>Download</span>
                     <span className="text-lg">⬇</span>

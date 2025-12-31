@@ -1,25 +1,30 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, ManyToOne, JoinColumn } from 'typeorm';
+import { User } from './user.entity';
 
-@Entity('shared_file')
-export class Shared_File {
-  @PrimaryGeneratedColumn()
-  id: number;
+@Entity('shared_files')
+export class Shared_Files {
+    @PrimaryGeneratedColumn()
+    id: number;
 
-  @Column()
-  room_id: number;
+    @Column()
+    room_id: number;
 
-  @Column()
-  user_id: number;
+    @Column()
+    user_id: number;
 
-  @Column()
-  file_name: string; 
+    @ManyToOne(() => User)
+    @JoinColumn({ name: 'user_id' })
+    user: User;
 
-  @Column()
-  file_url: string;  
+    @Column()
+    file_name: string;
 
-  @Column()
-  file_size: string; 
+    @Column()
+    file_url: string;
 
-  @CreateDateColumn()
-  created_at: Date;
+    @Column()
+    file_size: number;
+
+    @CreateDateColumn()
+    created_at: Date;
 }
