@@ -22,6 +22,7 @@ function Home() {
   };
 
   useEffect(() => {
+    debugger
     // 1. VERIFICAÇÃO DE SEGURANÇA: Existe utilizador no LocalStorage?
     const storedUser = localStorage.getItem('user');
 
