@@ -13,11 +13,12 @@ function GlobalChat({ mensagens, user, texto, setTexto, handleSend, messagesEndR
       <div className="flex-1 p-6 overflow-y-auto bg-gray-50 space-y-4 flex flex-col">
         {mensagens.map((msg, i) => {
           const isMe = Number(msg.user_id) === Number(user.id);
+          const nomeExibir = msg.user?.nome || msg.nome || (isMe ? nomeDoAluno : "Professor");
           return (
             <div key={i} className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}>
               <div className={`p-4 rounded-2xl shadow-sm max-w-[75%] ${isMe ? 'bg-blue-600 text-white rounded-tr-none' : 'bg-white border border-gray-200 text-gray-800 rounded-tl-none'}`}>
                 <span className={`text-[10px] font-extrabold uppercase tracking-wider mb-1 px-2 block ${isMe ? 'text-white' : 'text-gray-500'}`}>
-                  {isMe ? user.nome : (msg.user.nome || 'Utilizador')}
+                  {nomeExibir}
                 </span>
                 <p className="text-sm font-medium">{msg.content}</p>
                 <span className={`text-[9px] mt-2 block ${isMe ? 'text-blue-200' : 'text-gray-400'}`}>

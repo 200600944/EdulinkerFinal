@@ -4,6 +4,7 @@ import Register from './Register';
 import ProfessorChat from './ProfessorChat';
 import StudentChat from './StudentChat';
 import Lobby from './Loby';
+import FileManager from './FileManager';
 
 function Home() {
   const [activeTab, setActiveTab] = useState('welcome');
@@ -77,10 +78,10 @@ function Home() {
           {/* BOTÃO DE Ficheiros - Só visível para Alunos e Professores */}
           {(userProfessor || userStudent) && (
           <button
-            onClick={() => setActiveTab('files')}
+            onClick={() => setActiveTab('shared_file')}
             className={`w-full flex items-center p-3 rounded-lg transition-all duration-200 ${activeTab === 'files' ? 'bg-blue-600 shadow-md' : 'hover:bg-blue-700'}`}
           >
-            <span className="mr-3 text-xl">📂</span> Meus Ficheiros
+            <span className="mr-3 text-xl">📂</span> Gestão de Ficheiros da Aula
           </button>
           )}
 
@@ -133,7 +134,7 @@ function Home() {
             {activeTab === 'welcome' && 'Bem vindo'}
             {activeTab === 'loby' && 'Salas de Aula'}
             {activeTab === 'canvas' && 'Quadro Interativo'}
-            {activeTab === 'files' && 'Gestor de Ficheiros'}
+            {activeTab === 'files' && 'Gestão de Ficheiros da Aula'}
             {activeTab === 'chat' && 'Comunicação em Tempo Real'}
             {activeTab === 'register' && 'Registo de Novo Utilizador'}
             {activeTab === 'studentchat' && 'As minhas Duvidas'}
@@ -207,13 +208,7 @@ function Home() {
 
           {/* Aba: Files */}
           {activeTab === 'files' && (
-            <div className="bg-white p-10 rounded-2xl shadow-xl border border-gray-100">
-              <h2 className="text-2xl font-bold mb-6 text-gray-800">Upload de Ficheiros</h2>
-              <div className="border-4 border-dashed border-blue-50 rounded-2xl p-16 text-center hover:border-blue-200 hover:bg-blue-50 transition-all cursor-pointer group">
-                <div className="text-5xl mb-4 group-hover:bounce animate-bounce">☁️</div>
-                <p className="text-gray-600 font-medium text-lg">Arraste ficheiros para aqui ou clique para selecionar</p>
-              </div>
-            </div>
+           <FileManager/>
           )}
 
           {/* Aba: REGISTO (Só para Admin) */}

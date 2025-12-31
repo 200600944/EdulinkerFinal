@@ -1,10 +1,10 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import '../index.css';
-import Loby from '../components/Loby';
+import FileManager from '../components/FileManager';
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
-    <Loby />
+    <FileManager />
   </React.StrictMode>
 );

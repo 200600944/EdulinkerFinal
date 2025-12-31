@@ -3,7 +3,7 @@ import { io } from 'socket.io-client';
 import { chatService } from '../services/chat.service';
 
 const API_URL = import.meta.env.VITE_API_URL;
-const socket = io(API_URL); 
+const socket = io(API_URL);
 
 export function useChat() {
     const [conversas, setConversas] = useState([]);
@@ -34,20 +34,20 @@ export function useChat() {
 
     useEffect(() => {
         if (!salaAtiva || !socket) {
-            setOnlineUsers([]); 
+            setOnlineUsers([]);
             return;
         }
 
         const roomId = String(salaAtiva.room_id);
 
         // NOVO: Agora enviamos um objeto com o ID da sala e os dados do utilizador
-        socket.emit('join_room', { 
-            roomId: roomId, 
-            user: { 
-                id: userLogado.id, 
+        socket.emit('join_room', {
+            roomId: roomId,
+            user: {
+                id: userLogado.id,
                 nome: userLogado.nome,
-                role: userLogado.role 
-            } 
+                role: userLogado.role
+            }
         });
 
         // Ouve a lista atualizada de utilizadores enviada pelo Gateway
@@ -60,10 +60,22 @@ export function useChat() {
             .catch(err => console.error("Erro ao carregar histórico:", err));
 
         const handleReceiveMessage = (novaMsg) => {
+            debugger
             if (String(novaMsg.room_id) === roomId) {
                 setMensagens((prev) => {
                     if (prev.find(m => m.id === novaMsg.id)) return prev;
-                    return [...prev, novaMsg];
+
+                    // Aqui é que corrigimos: se a novaMsg não tiver o objeto .user, 
+                    // nós criamos um para que o GlobalChat consiga ler msg.user.nome
+                    const msgParaRenderizar = {
+                        ...novaMsg,
+                        user: novaMsg.user || {
+                            nome: novaMsg.nome ,
+                            role: novaMsg.role || "student"
+                        }
+                    };
+
+                    return [...prev, msgParaRenderizar]; // Adicionamos a mensagem já com o objeto user
                 });
             }
         };
@@ -77,16 +89,17 @@ export function useChat() {
                 socket.emit('leave_room', { roomId: salaAtiva.room_id, userId: userLogado.id });
             }
         };
-    }, [salaAtiva]); 
+    }, [salaAtiva]);
 
-    const enviarMensagem = (conteudo, userId, role) => {
+    const enviarMensagem = (conteudo, userId, role, userName) => {
         if (!salaAtiva || !conteudo.trim()) return;
 
         const payload = {
             room_id: salaAtiva.room_id,
             user_id: userId,
+            nome: userName,
             content: conteudo,
-            user_role: role 
+            user_role: role
         };
 
         socket.emit('send_message', payload);
@@ -98,8 +111,8 @@ export function useChat() {
         salaAtiva,
         setSalaAtiva,
         enviarMensagem,
-        onlineUsers, 
+        onlineUsers,
         socket,
-        carregarSalas: atualizarListaConversas 
+        carregarSalas: atualizarListaConversas
     };
 }

@@ -28,9 +28,9 @@ export const useProfessorChat = () => {
     const handleSend = (e) => {
         if (e) e.preventDefault();
         if (!texto.trim() || !salaAtiva) return;
-
+        debugger
         // O papel 'professor' no backend garante que a dúvida é marcada como respondida
-        enviarMensagem(texto, user.id, 'professor');
+        enviarMensagem(texto, user.id, 'professor',nomeDoProfessor);
         setTexto("");
     };
 

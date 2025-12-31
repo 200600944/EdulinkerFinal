@@ -1,100 +1,17 @@
-import { useState, useRef, useEffect, useCallback } from 'react';
-import { useChat } from '../hooks/useChat';
-import { authService } from '../services/auth.Service';
-import DrawingCanvas from './DrawingCanvas';
+import { useLoby } from '../hooks/useLoby';
+import DrawingCanvas from './DrawingCanvas'; 
 import GlobalChat from './GlobalChat';
-
-
-function Loby() {
-    const [authorized, setAuthorized] = useState(false);
-    const [loading, setLoading] = useState(true);
-    const hasAlerted = useRef(false);
-    const API_BASE = import.meta.env.VITE_API_URL;
-    const [isCreating, setIsCreating] = useState(false);
-    const [novoNomeSala, setNovoNomeSala] = useState("");
-    const user = JSON.parse(localStorage.getItem('user') || '{}');
-    const isProfessor = user.role === 'professor';
-
-    // Adicionado onlineUsers que vem do teu hook useChat atualizado
-    const { mensagens, salaAtiva, setSalaAtiva, enviarMensagem, onlineUsers, socket } = useChat();
-    const [rooms, setrooms] = useState([]);
-    const [texto, setTexto] = useState("");
-    const messagesEndRef = useRef(null);
-
-    useEffect(() => {
-        authService.initializePage({
-            checkFunc: authService.isProfessor || authService.isStudent,
-            hasAlertedRef: hasAlerted,
-            setAuthorized,
-            setLoading,
-        });
-    }, [user.id]);
-
-    useEffect(() => {
-        messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-    }, [mensagens]);
-
-    const handleCreateClass = async () => {
-        if (!novoNomeSala || novoNomeSala.trim() === "") {
-            alert("Por favor, insira um nome para a sala.");
-            return;
-        }
-
-        const payload = {
-            name: novoNomeSala,
-            owner_id: user.id,
-            room_type: 'class'
-        };
-        try {
-            const response = await fetch(`${API_BASE}/chat/create-room`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
-            });
-            if (response.ok) {
-                const novaSala = await response.json();
-                if (carregarSalas) carregarSalas();
-                setIsCreating(false)
-                setSalaAtiva({ room_id: novaSala.id, room_name: novaSala.name, room_type: novaSala.room_type });
-            }
-        } catch (error) { console.error("Erro:", error); }
-    };
-
-    const carregarSalas = useCallback(async () => {
-        if (!user.id) return;
-        try {
-            const response = await fetch(`${API_BASE}/chat/class-rooms`);
-            if (response.ok) {
-                const data = await response.json();
-                setrooms(data);
-            }
-        } catch (error) {
-            console.error("Erro ao carregar salas do aluno:", error);
-        }
-    }, [user.id, API_BASE]);
-
-    const handleSend = (e) => {
-        e.preventDefault();
-        if (!texto.trim() || !salaAtiva) return;
-        enviarMensagem(texto, user.id, user.role);
-        setTexto("");
-    };
-
-    const handleSairDaAula = () => {
-        if (salaAtiva && socket) {
-            // Agora o socket já existe aqui porque veio do hook lá em cima
-            socket.emit('leave_room', { roomId: salaAtiva.room_id, userId: user.id });
-        }
-        setSalaAtiva(null);
-    };
-
-
-    useEffect(() => {
-        carregarSalas();
-    }, [carregarSalas]);
+function Lobby() {
+    const {
+        authorized, loading, user, isProfessor,
+        rooms, isCreating, setIsCreating, novoNomeSala, setNovoNomeSala,
+        texto, setTexto, mensagens, salaAtiva, setSalaAtiva,
+        onlineUsers, socket, messagesEndRef,
+        handleCreateClass, handleSend, handleSairDaAula
+    } = useLoby();
 
     if (loading) return <div className="p-10 text-center italic text-gray-500">A carregar...</div>;
-
+    if (!authorized) return null;
     return (
         <div className="w-full h-full bg-white rounded-2xl shadow-xl border-2 border-dashed border-gray-200 overflow-hidden">
             {!salaAtiva ? (
@@ -115,48 +32,13 @@ function Loby() {
                     </div>
                     <div className="grid gap-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
                         {isProfessor && (
-                            <div className="w-full transition-all duration-300">
-                                {!isCreating ? (
-                                    /* BOTÃO INICIAL */
-                                    <button
-                                        onClick={() => {
-                                            setIsCreating(true);
-                                            setNovoNomeSala(`Aula de ${user.nome}`);
-                                        }}
-                                        className="group w-full p-6 bg-white border-2 border-dashed rounded-2xl flex items-center justify-center gap-3 text-blue-600 font-bold hover:border-blue-500 hover:bg-blue-50 transition-all shadow-sm"
-                                    >
-                                        <span className="text-2xl group-hover:scale-125 transition-transform">+</span>
-                                        Criar uma nova sala de aula
-                                    </button>
-                                ) : (
-                                    /* FORMULÁRIO DE NOME */
-                                    <div className="w-full p-6 bg-blue-50 border-2 border-blue-200 rounded-2xl animate-in zoom-in-95 duration-200">
-                                        <label className="block text-sm font-bold text-blue-800 mb-2">Nome da Sala de Aula:</label>
-                                        <div className="flex gap-3">
-                                            <input
-                                                autoFocus
-                                                type="text"
-                                                value={novoNomeSala}
-                                                onChange={(e) => setNovoNomeSala(e.target.value)}
-                                                className="flex-1 p-3 rounded-xl border-2 border-blue-100 outline-none focus:border-blue-500 transition-all font-medium"
-                                                placeholder="Ex: Aula de Matemática - 10ºA"
-                                            />
-                                            <button
-                                                onClick={handleCreateClass}
-                                                className="bg-blue-600 text-white px-6 py-3 rounded-xl font-bold hover:bg-blue-700 transition-all shadow-md"
-                                            >
-                                                Confirmar
-                                            </button>
-                                            <button
-                                                onClick={() => setIsCreating(false)}
-                                                className="bg-white text-gray-500 px-6 py-3 rounded-xl font-bold border border-gray-200 hover:bg-gray-100 transition-all"
-                                            >
-                                                Cancelar
-                                            </button>
-                                        </div>
-                                    </div>
-                                )}
-                            </div>
+                            <button
+                                onClick={handleCreateClass}
+                                className="group w-full p-6 bg-white border-2 border-dashed rounded-2xl flex items-center justify-center gap-3 text-blue-600 font-bold hover:border-blue-500 hover:bg-blue-50 transition-all shadow-sm"
+                            >
+                                <span className="text-2xl group-hover:scale-125 transition-transform">+</span>
+                                Criar uma nova sala de aula
+                            </button>
                         )}
                     </div>
                     <div className="grid gap-4 mt-4">
@@ -229,7 +111,7 @@ function Loby() {
                         {/* Lado Central: Quadro de Desenho */}
                         <div className="flex-[2] bg-gray-200 p-4 border-r overflow-hidden flex flex-col">
                             <div className="bg-white rounded-xl shadow-inner h-full overflow-hidden border-2 border-gray-300">
-                                <DrawingCanvas salaId={salaAtiva.room_id} socket={socket} userRole={user.role} />
+                              <DrawingCanvas salaId={salaAtiva.room_id} socket={socket} userRole={user.role}/>
                             </div>
                         </div>
 
@@ -249,4 +131,4 @@ function Loby() {
     );
 }
 
-export default Loby;
+export default Lobby;

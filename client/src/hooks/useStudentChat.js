@@ -80,7 +80,7 @@ export const useStudentChat = () => {
     if (e) e.preventDefault();
     if (!texto.trim() || !salaAtiva) return;
 
-    enviarMensagem(texto, user.id, 'aluno');
+    enviarMensagem(texto, user.id, 'aluno',nomeDoAluno);
     setTexto("");
   };
 

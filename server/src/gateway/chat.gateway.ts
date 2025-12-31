@@ -90,7 +90,8 @@ export class ChatGateway {
         room_id: any, // Pode vir como string do socket, vamos converter
         user_id: number,
         content: string,
-        user_role: string
+        user_role: string,
+        nome?: string
     }) {
 
         const roomId = Number(data.room_id);
@@ -121,9 +122,15 @@ export class ChatGateway {
         // Avisa todos (Professores e Alunos) para atualizarem as listas laterais
         this.server.emit('refresh_chat_list');
 
+        const mensagemParaBroadcast = {
+            ...mensagemSalva,
+            nome: data.nome, 
+            user_role: data.user_role
+        };
+
         // Envia a mensagem para quem está dentro da sala aberta
         // Importante: o .to() precisa do ID exato (string ou number) que foi usado no join_room
-        this.server.to(data.room_id.toString()).emit('receive_message', mensagemSalva);
+        this.server.to(data.room_id.toString()).emit('receive_message', mensagemParaBroadcast);
     }
 
     // Reenvia a linha para todos na sala, exceto para quem desenhou
