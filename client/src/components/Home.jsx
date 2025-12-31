@@ -22,8 +22,8 @@ function Home() {
   };
 
   useEffect(() => {
-    debugger
-    // 1. VERIFICAÇÃO DE SEGURANÇA: Existe utilizador no LocalStorage?
+
+    // VERIFICAÇÃO DE SEGURANÇA: Existe utilizador no LocalStorage?
     const storedUser = localStorage.getItem('user');
 
     if (!storedUser && !hasAlerted.current) {
@@ -42,6 +42,15 @@ function Home() {
     setUserProfessor(isProfessor());
     setUserStudent(isStudent());
 
+    //Limpesa da local storage caso o user feche a tab sem fazer logout
+    const handleTabClose = () => {
+      localStorage.clear();
+    };
+    window.addEventListener('beforeunload', handleTabClose);
+
+    return () => {
+      window.removeEventListener('beforeunload', handleTabClose);
+    };
 
   }, []);
 
@@ -78,12 +87,12 @@ function Home() {
 
           {/* BOTÃO DE Ficheiros - Só visível para Alunos e Professores */}
           {(userProfessor || userStudent) && (
-          <button
-            onClick={() => setActiveTab('shared_file')}
-            className={`w-full flex items-center p-3 rounded-lg transition-all duration-200 ${activeTab === 'files' ? 'bg-blue-600 shadow-md' : 'hover:bg-blue-700'}`}
-          >
-            <span className="mr-3 text-xl">📂</span> Gestão de Ficheiros da Aula
-          </button>
+            <button
+              onClick={() => setActiveTab('shared_file')}
+              className={`w-full flex items-center p-3 rounded-lg transition-all duration-200 ${activeTab === 'files' ? 'bg-blue-600 shadow-md' : 'hover:bg-blue-700'}`}
+            >
+              <span className="mr-3 text-xl">📂</span> Gestão de Ficheiros da Aula
+            </button>
           )}
 
           {/* BOTÃO DE REGISTO - Só visível para Admin */}
@@ -209,7 +218,7 @@ function Home() {
 
           {/* Aba: Files */}
           {activeTab === 'shared_file' && (
-           <FileManager/>
+            <FileManager />
           )}
 
           {/* Aba: REGISTO (Só para Admin) */}
