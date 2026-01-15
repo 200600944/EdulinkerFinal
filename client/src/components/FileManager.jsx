@@ -4,19 +4,25 @@ import { useSharedFiles } from '../hooks/useSharedFiles';
 import { sharedFilesService } from '../services/shared_files.service';
 
 function FileManager() {
+  // Hook customizado para obter as salas disponíveis e permissões do utilizador
   const { rooms, user, isProfessor, loading: loadingRooms } = useLoby();
   const [activeRoom, setActiveRoom] = useState(null);
   
-  // Resolvemos o ID da sala (ajusta se a tua API usar .id ou .room_id)
+  // Resolve o ID da sala ativa de forma segura (suporta diferentes nomenclaturas de API)
   const currentRoomId = activeRoom?.room_id || activeRoom?.id;
+
+  // Hook customizado para gerir a lógica de ficheiros da sala selecionada
   const { files, uploading, handleUpload } = useSharedFiles(currentRoomId);
 
-  if (loadingRooms) return <div className="p-10 text-center italic text-gray-500">A carregar aulas...</div>;
+  // Ecrã de carregamento enquanto as salas são obtidas do servidor
+  if (loadingRooms) {
+    return <div className="p-10 text-center italic text-gray-500">A carregar aulas...</div>;
+  }
 
   return (
     <div className="flex h-[85vh] bg-white rounded-3xl shadow-2xl border border-gray-100 overflow-hidden m-4">
       
-      {/* SIDEBAR: LISTA DE AULAS */}
+      {/* Sidebar: Listagem de aulas para seleção de repositório */}
       <div className="w-80 bg-slate-50 border-r flex flex-col">
         <div className="p-6 bg-white border-b border-slate-100 shadow-sm">
           <h2 className="text-xl font-black text-slate-800 uppercase tracking-tighter italic">Repositório</h2>
@@ -40,10 +46,11 @@ function FileManager() {
         </div>
       </div>
 
-      {/* CONTEÚDO PRINCIPAL: MATERIAIS */}
+      {/* Área Principal: Gestão e visualização de ficheiros da aula ativa */}
       <div className="flex-1 flex flex-col bg-white">
         {activeRoom ? (
           <>
+            {/* Cabeçalho da pasta de materiais */}
             <div className="p-6 border-b flex justify-between items-center bg-slate-50/30">
               <div>
                 <h2 className="text-2xl font-black text-slate-800 uppercase italic">
@@ -55,7 +62,7 @@ function FileManager() {
                 </div>
               </div>
 
-              {/* PROFESSOR: Pode carregar novos ficheiros */}
+              {/* Controlo de Upload: Visível apenas para perfis de Professor */}
               {isProfessor && (
                 <label className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] cursor-pointer transition-all shadow-xl active:scale-95">
                   {uploading ? 'A enviar...' : 'Novo Material'}
@@ -69,6 +76,7 @@ function FileManager() {
               )}
             </div>
 
+            {/* Grelha de Ficheiros: Exibe os materiais disponíveis para download */}
             <div className="flex-1 p-8 overflow-y-auto grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 content-start bg-[radial-gradient(#e5e7eb_1px,transparent_1px)] [background-size:24px_24px]">
               {files.map((file) => (
                 <div key={file.id} className="bg-white p-5 rounded-[2rem] border-2 border-slate-100 flex flex-col gap-4 hover:border-blue-400 hover:shadow-2xl transition-all group">
@@ -79,24 +87,25 @@ function FileManager() {
                     <div className="truncate flex-1">
                       <p className="font-black text-slate-800 truncate text-xs uppercase tracking-tight">{file.file_name}</p>
                       <div className="flex gap-2 mt-1">
-                        <span className="text-[9px] bg-slate-100 text-slate-500 px-2 py-0.5 rounded-full font-bold uppercase">{file.file_size}</span>
+                        <span className="text-[9px] bg-slate-100 text-slate-500 px-2 py-0.5 rounded-full font-bold uppercase">{file.file_size} KB</span>
                         <span className="text-[9px] text-slate-400 font-bold uppercase">{new Date(file.created_at).toLocaleDateString()}</span>
                       </div>
                     </div>
                   </div>
                   
-                  {/* TODOS (ALUNOS E PROFESSORES): Link de Download */}
+                  {/* Link de Download: Disponível para Alunos e Professores */}
                   <a 
                     href={sharedFilesService.getDownloadUrl(file.file_url)} 
                     download={file.file_name}
                     className="w-full py-4 bg-blue-600 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest text-center hover:bg-blue-700 transition-all shadow-lg flex items-center justify-center gap-2"
                   >
-                    <span>Download</span>
+                    <span>Transferir</span>
                     <span className="text-lg">⬇</span>
                   </a>
                 </div>
               ))}
               
+              {/* Estado Vazio: Quando a sala selecionada não possui ficheiros */}
               {files.length === 0 && (
                 <div className="col-span-full flex flex-col items-center justify-center py-24 opacity-30">
                   <div className="text-7xl mb-4">📭</div>
@@ -106,6 +115,7 @@ function FileManager() {
             </div>
           </>
         ) : (
+          /* Estado Inicial: Quando nenhuma aula foi selecionada na sidebar */
           <div className="flex-1 flex flex-col items-center justify-center bg-slate-50/50">
              <div className="text-9xl mb-6 grayscale opacity-10 animate-pulse">📂</div>
              <p className="font-black text-slate-400 uppercase tracking-[0.5em] text-sm">Selecione uma aula</p>

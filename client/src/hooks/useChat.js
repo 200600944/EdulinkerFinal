@@ -6,98 +6,111 @@ const API_URL = import.meta.env.VITE_API_URL;
 const socket = io(API_URL);
 
 export function useChat() {
-    const [conversas, setConversas] = useState([]);
-    const [mensagens, setMensagens] = useState([]);
-    const [salaAtiva, setSalaAtiva] = useState(null);
+    // Estados para gestão de conversas, mensagens e presenças em tempo real
+    const [conversations, setConversations] = useState([]);
+    const [messages, setMessages] = useState([]);
+    const [activeRoom, setActiveRoom] = useState(null);
     const [onlineUsers, setOnlineUsers] = useState([]);
 
-    const userLogado = JSON.parse(localStorage.getItem('user') || '{}');
+    // Recupera os dados do utilizador do armazenamento local para identificação no Socket
+    const loggedUser = JSON.parse(localStorage.getItem('user') || '{}');
 
-    const atualizarListaConversas = useCallback(async () => {
+    // Função para procurar a lista de salas disponíveis via API
+    const updateConversationList = useCallback(async () => {
         try {
             const data = await chatService.getRooms();
-            setConversas(data);
+            setConversations(data);
         } catch (error) {
-            console.error("Erro ao atualizar lista:", error);
+            console.error("Erro ao atualizar lista de conversas:", error);
         }
     }, []);
 
+    // Efeito para carregar as salas inicialmente e ouvir atualizações globais
     useEffect(() => {
-        atualizarListaConversas();
+        updateConversationList();
+        
+        // Ouve eventos do servidor que solicitam a atualização da lista (ex: nova sala criada)
         socket.on('refresh_chat_list', () => {
-            atualizarListaConversas();
+            updateConversationList();
         });
 
         return () => socket.off('refresh_chat_list');
-    }, [atualizarListaConversas]);
+    }, [updateConversationList]);
 
+    // Efeito principal para gestão da sala ativa (Join/Leave e histórico)
     useEffect(() => {
-        if (!salaAtiva || !socket) {
+        if (!activeRoom || !socket) {
             setOnlineUsers([]);
             return;
         }
 
-        const roomId = String(salaAtiva.room_id);
+        const roomId = String(activeRoom.room_id);
 
-        // NOVO: Agora enviamos um objeto com o ID da sala e os dados do utilizador
+        // Notifica o servidor da entrada na sala para começar a receber eventos específicos
         socket.emit('join_room', {
             roomId: roomId,
             user: {
-                id: userLogado.id,
-                nome: userLogado.nome,
-                role: userLogado.role
+                id: loggedUser.id,
+                nome: loggedUser.nome,
+                role: loggedUser.role
             }
         });
 
-        // Ouve a lista atualizada de utilizadores enviada pelo Gateway
+        // Sincroniza a lista de utilizadores que estão atualmente na mesma sala
         socket.on('update_user_list', (users) => {
             setOnlineUsers(users);
         });
 
+        // Procura o histórico de mensagens da base de dados ao entrar na sala
         chatService.getChatHistory(roomId)
-            .then(data => setMensagens(data))
-            .catch(err => console.error("Erro ao carregar histórico:", err));
+            .then(data => setMessages(data))
+            .catch(err => console.error("Erro ao carregar histórico de mensagens:", err));
 
-        const handleReceiveMessage = (novaMsg) => {
-            debugger
-            if (String(novaMsg.room_id) === roomId) {
-                setMensagens((prev) => {
-                    if (prev.find(m => m.id === novaMsg.id)) return prev;
+        // Processa a chegada de novas mensagens via WebSocket
+        const handleReceiveMessage = (newMessage) => {
+            if (String(newMessage.room_id) === roomId) {
+                setMessages((prev) => {
+                    // Evita duplicados caso a mensagem já exista no estado local
+                    if (prev.find(m => m.id === newMessage.id)) return prev;
 
-                    // Aqui é que corrigimos: se a novaMsg não tiver o objeto .user, 
-                    // nós criamos um para que o GlobalChat consiga ler msg.user.nome
-                    const msgParaRenderizar = {
-                        ...novaMsg,
-                        user: novaMsg.user || {
-                            nome: novaMsg.nome ,
-                            role: novaMsg.role || "student"
+                    // Normaliza o objeto da mensagem para garantir compatibilidade com o GlobalChat
+                    const messageToRender = {
+                        ...newMessage,
+                        user: newMessage.user || {
+                            nome: newMessage.nome,
+                            role: newMessage.role || "student"
                         }
                     };
 
-                    return [...prev, msgParaRenderizar]; // Adicionamos a mensagem já com o objeto user
+                    return [...prev, messageToRender];
                 });
             }
         };
 
         socket.on('receive_message', handleReceiveMessage);
 
+        // Limpeza ao sair da sala ou desmontar o componente
         return () => {
             socket.off('receive_message');
             socket.off('update_user_list');
-            if (salaAtiva) {
-                socket.emit('leave_room', { roomId: salaAtiva.room_id, userId: userLogado.id });
+            if (activeRoom) {
+                socket.emit('leave_room', { 
+                    roomId: activeRoom.room_id, 
+                    userId: loggedUser.id 
+                });
             }
         };
-    }, [salaAtiva]);
+    }, [activeRoom]);
 
-    const enviarMensagem = (conteudo, userId, role, userName) => {
-        if (!salaAtiva || !conteudo.trim()) return;
+    // Função para emitir uma nova mensagem para o servidor via Socket
+    const sendMessage = (content, userId, role, userName) => {
+        if (!activeRoom || !content.trim()) return;
 
         const payload = {
-            room_id: salaAtiva.room_id,
+            room_id: activeRoom.room_id,
             user_id: userId,
             nome: userName,
-            content: conteudo,
+            content: content,
             user_role: role
         };
 
@@ -105,13 +118,13 @@ export function useChat() {
     };
 
     return {
-        conversas,
-        mensagens,
-        salaAtiva,
-        setSalaAtiva,
-        enviarMensagem,
+        conversations,
+        messages,
+        activeRoom,
+        setActiveRoom,
+        sendMessage,
         onlineUsers,
         socket,
-        carregarSalas: atualizarListaConversas
+        loadRooms: updateConversationList
     };
 }

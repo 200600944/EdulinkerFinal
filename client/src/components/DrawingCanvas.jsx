@@ -1,24 +1,28 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Stage, Layer, Line } from 'react-konva';
 
-const DrawingCanvas = ({ roomId, socket, userRole }) => { // <--- RECEBE O SOCKET AQUI
+const DrawingCanvas = ({ roomId, socket, userRole }) => {
+  // Estados para gerir as linhas desenhadas no quadro
   const [lines, setLines] = useState([]);
   const isDrawing = useRef(false);
 
-  const isProfessor = userRole?.toLowerCase() === 'professor';
+  // Verificação de permissão: apenas o professor pode interagir com o quadro
+  const isProfessorUser = userRole?.toLowerCase() === 'professor';
 
   useEffect(() => {
     if (!socket || !roomId) return;
 
-    // Receber o histórico completo (disparado no join_room)
+    // Recebe o histórico completo de desenhos ao entrar na sala
     socket.on('canvas_history', (history) => {
       setLines(history);
     });
 
+    // Escuta novos traços desenhados por outros utilizadores (neste caso, o professor)
     socket.on('draw_line', (newLine) => {
       setLines((prev) => [...prev, newLine]);
     });
 
+    // Escuta o evento de limpeza do quadro
     socket.on('clear_canvas', () => setLines([]));
 
     return () => {
@@ -28,45 +32,41 @@ const DrawingCanvas = ({ roomId, socket, userRole }) => { // <--- RECEBE O SOCKE
     };
   }, [roomId, socket]);
 
-  // Esta função corre no momento exato em que clicas com o rato no quadro
+  // Inicia o processo de desenho quando o utilizador clica no palco
   const handleMouseDown = (e) => {
-    // Se não fores o professor, não te deixa começar a desenhar
-    if (!isProfessor) return;
+    // Bloqueia a ação se o utilizador não tiver perfil de professor
+    if (!isProfessorUser) return;
 
-    // Avisa o sistema que o rato está premido e o desenho começou
     isDrawing.current = true;
 
-    // O Konva captura a coordenada (x, y) de onde o teu clique aconteceu dentro do palco
+    // Captura a posição inicial do ponteiro
     const pos = e.target.getStage().getPointerPosition();
 
-    // Cria uma nova linha na lista, guardando este primeiro ponto como o início do traço
+    // Adiciona uma nova linha à lista com o ponto inicial
     setLines([...lines, { points: [pos.x, pos.y] }]);
   };
 
-  // Esta função corre sempre que moves o rato sobre o quadro
+  // Atualiza a linha em tempo real enquanto o rato se move
   const handleMouseMove = (e) => {
-    // Se não estiveres a carregar no rato ou não fores o professor, não faz nada
-    if (!isDrawing.current || !isProfessor) return;
+    // Interrompe se não houver desenho em curso ou se não for professor
+    if (!isDrawing.current || !isProfessorUser) return;
 
-    // O Konva descobre a posição exata do teu rato dentro do quadro branco
     const stage = e.target.getStage();
     const point = stage.getPointerPosition();
 
-    // Vamos buscar a linha que estamos a desenhar neste momento
+    // Obtém a referência da última linha que está a ser criada
     let lastLine = { ...lines[lines.length - 1] };
 
-    // Se a linha não existir por algum motivo, paramos aqui
     if (!lastLine) return;
 
-    // O Konva desenha ligando pontos (x,y). Aqui "colamos" as novas coordenadas 
-    // do rato ao final da linha para ela crescer enquanto te moves
+    // Concatena as novas coordenadas ao array de pontos da linha atual
     lastLine.points = lastLine.points.concat([point.x, point.y]);
 
-    // Atualizamos a lista de linhas para o React mostrar o desenho no teu ecrã
+    // Atualiza o estado local para renderização imediata no ecrã do professor
     const newLines = lines.slice(0, -1).concat(lastLine);
     setLines(newLines);
 
-    // Enviamos a linha atualizada para o servidor para que os alunos vejam o mesmo traço
+    // Emite o traço via socket para que os alunos recebam a atualização em tempo real
     socket.emit('draw_line', {
       roomId: roomId,
       line: lastLine,
@@ -74,34 +74,52 @@ const DrawingCanvas = ({ roomId, socket, userRole }) => { // <--- RECEBE O SOCKE
     });
   };
 
+  // Função para limpar todo o conteúdo do quadro branco
+  const handleClearCanvas = () => {
+    setLines([]);
+    socket.emit('clear_canvas', {
+      roomId: roomId,
+      userRole: userRole
+    });
+  };
+
   return (
     <div className="w-full h-full bg-white border rounded-lg overflow-hidden">
-      {!isProfessor ? (
-        <div className=" top-2 right-2 z-10 bg-blue-100 text-blue-700 px-2 py-1 rounded text-[10px] font-bold">
+      
+      {/* Interface de controlo: Mostra modo visualização para alunos ou botão limpar para professor */}
+      {!isProfessorUser ? (
+        <div className="p-2 bg-blue-100 text-blue-700 text-[10px] font-bold">
           Modo Visualização
         </div>
-      ) : (<button onClick={() => {
-        setLines([]);
-        socket.emit('clear_canvas', {
-          roomId: roomId,
-          userRole: userRole
-        });
-      }}
-        className="m-2 px-3 py-1 bg-red-500 text-white text-xs rounded">
-        Limpar
-      </button>)}
+      ) : (
+        <button 
+          onClick={handleClearCanvas}
+          className="m-2 px-3 py-1 bg-red-500 text-white text-xs rounded hover:bg-red-600 transition-colors"
+        >
+          Limpar Quadro
+        </button>
+      )}
 
+      {/* Palco do Konva onde o desenho é renderizado */}
       <Stage
         width={800}
         height={600}
         onMouseDown={handleMouseDown}
         onMousemove={handleMouseMove}
         onMouseup={() => isDrawing.current = false}
-        listening={isProfessor}
+        listening={isProfessorUser}
       >
         <Layer>
           {lines.map((line, i) => (
-            <Line key={i} points={line.points} stroke="#000" strokeWidth={3} tension={0.5} lineCap="round" lineJoin="round" />
+            <Line 
+              key={i} 
+              points={line.points} 
+              stroke="#000" 
+              strokeWidth={3} 
+              tension={0.5} 
+              lineCap="round" 
+              lineJoin="round" 
+            />
           ))}
         </Layer>
       </Stage>

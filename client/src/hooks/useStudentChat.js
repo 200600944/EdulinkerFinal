@@ -3,99 +3,108 @@ import { authService } from '../services/auth.Service';
 import { useChat } from './useChat';
 
 export const useStudentChat = () => {
-  // Estados de controlo e interface
-  const [authorized, setAuthorized] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [texto, setTexto] = useState("");
-  const [conversas, setConversas] = useState([]); // Lista local para salas do aluno
-  const hasAlerted = useRef(false);
+    // Estados de controlo de acesso e interface do chat de dúvidas
+    const [authorized, setAuthorized] = useState(false);
+    const [loading, setLoading] = useState(true);
+    const [messageText, setMessageText] = useState("");
+    const [conversations, setConversations] = useState([]); // Lista local de tickets do aluno
+    const hasAlerted = useRef(false);
 
-  // Consumimos o useChat original (Socket + Mensagens)
-  const { mensagens, enviarMensagem, setSalaAtiva, salaAtiva } = useChat();
+    // Consome a lógica base de sockets e mensagens do hook genérico useChat
+    const { 
+        messages, 
+        sendMessage, 
+        setSalaAtiva: setActiveRoom, 
+        salaAtiva: activeRoom 
+    } = useChat();
 
-  const API_BASE = import.meta.env.VITE_API_URL;
-  const user = JSON.parse(localStorage.getItem('user') || '{}');
-  const nomeDoAluno = user.nome || 'Aluno';
+    const API_BASE = import.meta.env.VITE_API_URL;
+    const user = JSON.parse(localStorage.getItem('user') || '{}');
+    const studentName = user.nome || 'Aluno';
 
-  // 1. Validação de acesso
-  useEffect(() => {
-    authService.initializePage({
-      checkFunc: authService.isStudent,
-      hasAlertedRef: hasAlerted,
-      setAuthorized,
-      setLoading,
-    });
-  }, []);
+    // Validação de segurança: Garante que apenas utilizadores com perfil 'student' acedem a esta área
+    useEffect(() => {
+        authService.initializePage({
+            checkFunc: authService.isStudent,
+            hasAlertedRef: hasAlerted,
+            setAuthorized,
+            setLoading,
+        });
+    }, []);
 
-  // 2. Carregar as salas específicas deste aluno (Diferente do Professor)
-  const carregarSalas = useCallback(async () => {
-    if (!user.id) return;
-    try {
-      // Endpoint específico do aluno que já deve filtrar por room_type: 'chat' no backend
-      const response = await fetch(`${API_BASE}/chat/student-rooms/${user.id}`);
-      if (response.ok) {
-        const data = await response.json();
-        setConversas(data);
-      }
-    } catch (error) {
-      console.error("Erro ao carregar salas do aluno:", error);
-    }
-  }, [user.id, API_BASE]);
+    // Procura as salas de chat (tickets de dúvida) específicas deste aluno no servidor
+    const loadConversations = useCallback(async () => {
+        if (!user.id) return;
+        try {
+            // Endpoint que filtra por owner_id e room_type: 'chat'
+            const response = await fetch(`${API_BASE}/chat/student-rooms/${user.id}`);
+            if (response.ok) {
+                const data = await response.json();
+                setConversations(data);
+            }
+        } catch (error) {
+            console.error("Erro ao carregar conversas do aluno:", error);
+        }
+    }, [user.id, API_BASE]);
 
-  useEffect(() => {
-    if (authorized) carregarSalas();
-  }, [authorized, carregarSalas]);
+    // Recarrega a lista de dúvidas sempre que a autorização é confirmada
+    useEffect(() => {
+        if (authorized) loadConversations();
+    }, [authorized, loadConversations]);
 
-  // 3. Criar nova sala (Dúvida)
-  const iniciarNovaDuvida = async () => {
-    const payload = {
-      name: `Dúvida de ${user.nome}`,
-      owner_id: user.id,
-      room_type: 'chat'
+    // Cria uma nova sala de dúvida (ticket) na base de dados e entra nela automaticamente
+    const startNewDoubt = async () => {
+        const payload = {
+            name: `Dúvida de ${user.nome}`,
+            owner_id: user.id,
+            room_type: 'chat'
+        };
+
+        try {
+            const response = await fetch(`${API_BASE}/chat/create-room`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            if (response.ok) {
+                const newRoom = await response.json();
+                // Define a sala recém-criada como ativa para abrir a janela de chat
+                setActiveRoom({
+                    room_id: newRoom.id,
+                    room_name: newRoom.name,
+                    aluno_nome: user.nome
+                });
+                loadConversations(); // Atualiza a lista em segundo plano
+            }
+        } catch (error) {
+            console.error("Erro ao criar ticket de dúvida:", error);
+        }
     };
 
-    try {
-      const response = await fetch(`${API_BASE}/chat/create-room`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
+    // Gere o envio de mensagens do aluno através do gateway de sockets
+    const handleSend = (e) => {
+        if (e) e.preventDefault();
+        if (!messageText.trim() || !activeRoom) return;
 
-      if (response.ok) {
-        const novaSala = await response.json();
-        setSalaAtiva({
-          room_id: novaSala.id,
-          room_name: novaSala.name,
-          aluno_nome: user.nome
-        });
-        carregarSalas(); // Atualiza a lista para mostrar a nova sala
-      }
-    } catch (error) {
-      console.error("Erro ao criar sala na BD:", error);
-    }
-  };
+        // Envia com a role 'aluno' para que o sistema identifique o remetente
+        sendMessage(messageText, user.id, 'aluno', studentName);
+        setMessageText("");
+    };
 
-  // 4. Lógica de Envio
-  const handleSend = (e) => {
-    if (e) e.preventDefault();
-    if (!texto.trim() || !salaAtiva) return;
-
-    enviarMensagem(texto, user.id, 'aluno',nomeDoAluno);
-    setTexto("");
-  };
-
-  return {
-    authorized,
-    loading,
-    conversas,
-    mensagens,
-    texto,
-    setTexto,
-    salaAtiva,
-    setSalaAtiva,
-    iniciarNovaDuvida,
-    handleSend,
-    user,
-    nomeDoAluno
-  };
+    // Exportação dos dados e funções para o componente StudentChat.jsx
+    return {
+        authorized,
+        loading,
+        conversas: conversations,
+        mensagens: messages,
+        texto: messageText,
+        setTexto: setMessageText,
+        salaAtiva: activeRoom,
+        setSalaAtiva: setActiveRoom,
+        iniciarNovaDuvida: startNewDoubt,
+        handleSend,
+        user,
+        nomeDoAluno: studentName
+    };
 };

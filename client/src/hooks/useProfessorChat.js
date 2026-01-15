@@ -3,18 +3,26 @@ import { authService } from '../services/auth.Service';
 import { useChat } from './useChat';
 
 export const useProfessorChat = () => {
+    // Estados para controlo de autorização e carregamento da página
     const [authorized, setAuthorized] = useState(false);
     const [loading, setLoading] = useState(true);
     const hasAlerted = useRef(false);
-    const [texto, setTexto] = useState("");
+    const [messageText, setMessageText] = useState("");
 
-    // Consumimos o motor do socket e conversas
-    const { conversas, mensagens, salaAtiva, setSalaAtiva, enviarMensagem } = useChat();
+    // Consome a lógica base de sockets e mensagens do useChat
+    const { 
+        conversations, 
+        messages, 
+        activeRoom, 
+        setActiveRoom, 
+        sendMessage 
+    } = useChat();
 
+    // Recupera os dados do professor do armazenamento local
     const user = JSON.parse(localStorage.getItem('user') || '{}');
-    const nomeDoProfessor = user.nome || 'Professor';
+    const professorName = user.nome || 'Professor';
 
-    // 1. Validação de acesso exclusiva para Professor
+    // Validação de segurança: Garante que apenas utilizadores com perfil 'professor' acedem
     useEffect(() => {
         authService.initializePage({
             checkFunc: authService.isProfessor,
@@ -24,27 +32,28 @@ export const useProfessorChat = () => {
         });
     }, []);
 
-    // 2. Lógica de envio com a role 'professor'
+    // Lógica de envio de mensagens com a role específica para marcar dúvidas como respondidas
     const handleSend = (e) => {
         if (e) e.preventDefault();
-        if (!texto.trim() || !salaAtiva) return;
-        debugger
-        // O papel 'professor' no backend garante que a dúvida é marcada como respondida
-        enviarMensagem(texto, user.id, 'professor',nomeDoProfessor);
-        setTexto("");
+        if (!messageText.trim() || !activeRoom) return;
+        
+        // Enviamos o cargo 'professor' para que o backend atualize o status da dúvida
+        sendMessage(messageText, user.id, 'professor', professorName);
+        setMessageText("");
     };
 
+    // Exportação dos dados uniformizados para o componente ProfessorChat.jsx
     return {
         authorized,
         loading,
-        conversas,
-        mensagens,
-        salaAtiva,
-        setSalaAtiva,
-        texto,
-        setTexto,
+        conversas: conversations,
+        mensagens: messages,
+        salaAtiva: activeRoom,
+        setSalaAtiva: setActiveRoom,
+        texto: messageText,
+        setTexto: setMessageText,
         handleSend,
         user,
-        nomeDoProfessor
+        nomeDoProfessor: professorName
     };
 };

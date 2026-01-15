@@ -11,19 +11,26 @@ export const useLoby = () => {
 
     // Controlo da interface para criação de novas salas e listagem local
     const [isCreating, setIsCreating] = useState(false);
-    const [novoNomeSala, setNovoNomeSala] = useState("");
-    const [rooms, setRooms] = useState([]); // Nota: Corrigido o nome do setter para camelCase
-    const [texto, setTexto] = useState("");
+    const [newRoomName, setNewRoomName] = useState("");
+    const [rooms, setRooms] = useState([]);
+    const [messageText, setMessageText] = useState("");
     const messagesEndRef = useRef(null);
 
     // Recuperação dos dados da sessão para lógica de permissões baseada no papel (role)
     const user = JSON.parse(localStorage.getItem('user') || '{}');
-    const isProfessor = user.role === 'professor';
+    const isProfessorUser = user.role === 'professor';
 
-    // Desestruturação das funcionalidades de comunicação em tempo real via Socket.io
-    const { mensagens, salaAtiva, setSalaAtiva, enviarMensagem, onlineUsers, socket } = useChat();
+    // Desestruturação das funcionalidades de comunicação em tempo real vindas do useChat
+    const { 
+        messages, 
+        activeRoom, 
+        setActiveRoom, 
+        sendMessage, 
+        onlineUsers, 
+        socket 
+    } = useChat();
 
-    // Validação de segurança ao montar o componente para garantir que o utilizador tem permissão de acesso
+    // Validação de segurança para garantir que o utilizador tem permissão de acesso ao lobby
     useEffect(() => {
         authService.initializePage({
             checkFunc: () => authService.isProfessor() || authService.isStudent(),
@@ -33,8 +40,8 @@ export const useLoby = () => {
         });
     }, [user.id]);
 
-    // Função para procurar na base de dados apenas as salas que estão com a flag is_active = 1
-    const carregarSalas = useCallback(async () => {
+    // Procura na base de dados as salas de aula que estão ativas (is_active = 1)
+    const loadRooms = useCallback(async () => {
         if (!user.id) return;
         try {
             const response = await fetch(`${API_BASE}/chat/class-rooms`);
@@ -43,29 +50,29 @@ export const useLoby = () => {
                 setRooms(data);
             }
         } catch (error) {
-            console.error("Erro ao carregar salas do aluno:", error);
+            console.error("Erro ao carregar salas:", error);
         }
     }, [user.id, API_BASE]);
 
-    // Carregamento inicial das salas assim que a autorização é confirmada
+    // Carregamento inicial das salas após a confirmação da autorização
     useEffect(() => {
-        if (authorized) carregarSalas();
-    }, [authorized, carregarSalas]);
+        if (authorized) loadRooms();
+    }, [authorized, loadRooms]);
 
-    // Mantém a visualização do chat focada na última mensagem recebida
+    // Mantém o scroll do chat focado na mensagem mais recente
     useEffect(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-    }, [mensagens]);
+    }, [messages]);
 
-    // Criação de uma nova sala de aula: regista na BD e entra automaticamente na nova sala criada
+    // Regista uma nova sala na base de dados e entra automaticamente nela
     const handleCreateClass = async () => {
-        if (!novoNomeSala || novoNomeSala.trim() === "") {
+        if (!newRoomName || newRoomName.trim() === "") {
             alert("Por favor, insira um nome para a sala.");
             return;
         }
 
         const payload = {
-            name: novoNomeSala,
+            name: newRoomName,
             owner_id: user.id,
             room_type: 'class'
         };
@@ -78,11 +85,12 @@ export const useLoby = () => {
             });
             if (response.ok) {
                 const novaSala = await response.json();
-                await carregarSalas(); // Atualiza a lista geral
+                await loadRooms(); // Atualiza a lista local
                 setIsCreating(false);
-                setNovoNomeSala(""); 
-                // Define a sala ativa para redirecionar o utilizador para dentro da aula criada
-                setSalaAtiva({
+                setNewRoomName(""); 
+                
+                // Define a sala ativa para redirecionar o utilizador para a aula criada
+                setActiveRoom({
                     room_id: novaSala.id,
                     room_name: novaSala.name,
                     room_type: novaSala.room_type
@@ -93,23 +101,23 @@ export const useLoby = () => {
         }
     };
 
-    // Encapsula o envio de mensagens de texto através do gateway de sockets
+    // Encapsula o envio de mensagens de texto através do WebSocket
     const handleSend = (e) => {
         if (e) e.preventDefault();
-        if (!texto.trim() || !salaAtiva) return;
-        enviarMensagem(texto, user.id, user.role, user.nome);
-        setTexto("");
+        if (!messageText.trim() || !activeRoom) return;
+        sendMessage(messageText, user.id, user.role, user.nome);
+        setMessageText("");
     };
 
-    // Notifica o servidor que o utilizador saiu da sala e limpa o estado local
-    const handleSairDaAula = () => {
-        if (salaAtiva && socket) {
-            socket.emit('leave_room', { roomId: salaAtiva.room_id, userId: user.id });
+    // Notifica o servidor da saída da sala e limpa o estado da sala ativa
+    const handleLeaveRoom = () => {
+        if (activeRoom && socket) {
+            socket.emit('leave_room', { roomId: activeRoom.room_id, userId: user.id });
         }
-        setSalaAtiva(null);
+        setActiveRoom(null);
     };
 
-    // Executa um Soft Delete no servidor (muda is_active para 0) e atualiza o estado local para esconder a sala
+    // Executa a desativação lógica (Soft Delete) de uma sala no servidor
     const handleDeleteRoom = async (roomId) => {
         if (!window.confirm("Desejas mesmo encerrar esta sala de aula?")) return;
 
@@ -120,39 +128,39 @@ export const useLoby = () => {
             });
 
             if (response.ok) {
-                // Filtra a lista localmente para refletir a alteração sem necessidade de novo fetch
+                // Remove a sala da lista local para atualização imediata da UI
                 setRooms(prev => prev.filter(r => r.room_id !== roomId));
             } else {
                 alert("Erro ao desativar a sala.");
             }
         } catch (error) {
-            console.error("Erro na comunicação com o servidor:", error);
+            console.error("Erro ao comunicar com o servidor:", error);
         }
     };
 
-    // Exportação dos estados e funções para serem utilizados no componente Lobby.jsx
+    // Exportação dos estados e funções para o componente Lobby.jsx
     return {
         authorized,
         loading,
         user,
-        isProfessor,
+        isProfessor: isProfessorUser,
         rooms,
         isCreating,
         setIsCreating,
-        novoNomeSala,
-        setNovoNomeSala,
-        texto,
-        setTexto,
-        mensagens,
-        salaAtiva,
-        setSalaAtiva,
+        novoNomeSala: newRoomName,
+        setNovoNomeSala: setNewRoomName,
+        texto: messageText,
+        setTexto: setMessageText,
+        mensagens: messages,
+        salaAtiva: activeRoom,
+        setSalaAtiva: setActiveRoom,
         onlineUsers,
         socket,
         messagesEndRef,
         handleCreateClass,
         handleSend,
-        handleSairDaAula,
+        handleSairDaAula: handleLeaveRoom,
         handleDeleteRoom,
-        carregarSalas
+        carregarSalas: loadRooms
     };
 };
