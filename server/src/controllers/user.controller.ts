@@ -6,9 +6,9 @@ import { CreateUserDto } from '../dto/create-user.dto';
 export class UserController {
     constructor(private readonly userService: UserService) { }
 
+    // Autentica um utilizador verificando as credenciais e devolvendo os dados de sessão
     @Post('login')
     async login(@Body() body: any) {
-        // O Controller apenas chama o Service e devolve a resposta amigável
         const userData = await this.userService.validateUser(body.email, body.password);
         
         return {
@@ -17,24 +17,35 @@ export class UserController {
         };
     }
 
+    // Regista um novo utilizador no sistema utilizando os dados validados pelo DTO
     @Post('register')
     async register(@Body() createDto: CreateUserDto) {
         try {
             await this.userService.register(createDto);
             return { message: 'Utilizador criado com sucesso!' };
         } catch (error) {
-            // Se o erro já for uma exceção do Nest (como BadRequest), ele propaga automaticamente
+            // Exceções de negócio (como email duplicado) são propagadas automaticamente pelo NestJS
             throw error;
         }
     }
 
+    // Procura e devolve todos os perfis de acesso (roles) configurados na base de dados
     @Get('roles')
     async getRoles() {
-        return await this.userService.findAllRoles();
+        try {
+            return await this.userService.findAllRoles();
+        } catch (error) {
+            throw new InternalServerErrorException("Erro ao procurar perfis de utilizador.");
+        }
     }
 
+    // Lista todos os utilizadores registados, incluindo as informações dos seus respetivos perfis
     @Get('users')
     async getUsers() {
-        return await this.userService.findAllUsers();
+        try {
+            return await this.userService.findAllUsers();
+        } catch (error) {
+            throw new InternalServerErrorException("Erro ao procurar a lista de utilizadores.");
+        }
     }
 }

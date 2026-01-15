@@ -8,7 +8,7 @@ import { join } from 'path';
 import { AppController } from './app.controller';
 import { UserController } from './controllers/user.controller';
 import { ChatController } from './controllers/chat.controller';
-import { Shared_FilesController } from './controllers/shared_files.controller';
+import { SharedFilesController } from './controllers/sharedFiles.controller';
 
 // Gateways
 import { ChatGateway } from './gateway/chat.gateway'; 
@@ -16,7 +16,7 @@ import { ChatGateway } from './gateway/chat.gateway';
 // Services
 import { AppService } from './app.service';
 import { ChatService } from './services/chat.service';
-import { SharedFilesService } from './services/shared_files.service';
+import { SharedFilesService } from './services/sharedfiles.service';
 import { UserService } from './services/user.service';
 
 // Entities
@@ -59,7 +59,7 @@ import { Shared_Files } from './entities/shared_files.entity';
     AppController, 
     UserController, 
     ChatController,
-    Shared_FilesController 
+    SharedFilesController 
   ],
   providers: [
     AppService, 
