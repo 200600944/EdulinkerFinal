@@ -22,6 +22,7 @@ export const login = async (email, password) => {
     }
     else {
       //Aqui adiciono o user a local storage para depois garantir no acesso as outras paginas que o user esta logado
+      localStorage.clear();
       localStorage.setItem('user', JSON.stringify(data.user));
     }
 

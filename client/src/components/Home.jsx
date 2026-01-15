@@ -21,38 +21,54 @@ function Home() {
     aluno: 'Aluno'
   };
 
-  useEffect(() => {
+useEffect(() => {
+  debugger
+  // 1. Verificar se houve um fecho de tab prolongado
+  const lastExit = localStorage.getItem('last_exit_time');
+  const now = Date.now();
+  const storedUser = localStorage.getItem('user');
 
-    // VERIFICAÇÃO DE SEGURANÇA: Existe utilizador no LocalStorage?
-    const storedUser = localStorage.getItem('user');
-
-    if (!storedUser && !hasAlerted.current) {
-      hasAlerted.current = true; // Marcamos que já avisámos
-      alert("Sessão expirada ou não autorizada. Por favor, faça login.");
-      window.location.href = '/views/index.html';
-      return;
-    }
-
-    // Se existir, carrega os dados
-    const user = JSON.parse(storedUser);
-    setUserData(user);
-
-
-    setUserAdmin(isAdmin());
-    setUserProfessor(isProfessor());
-    setUserStudent(isStudent());
-
-    //Limpesa da local storage caso o user feche a tab sem fazer logout
-    const handleTabClose = () => {
+  // Se o utilizador saiu há mais de 2 segundos, limpamos a sessão
+  // (O Refresh costuma demorar menos de 500ms a reexecutar o JS)
+  if (lastExit) {
+    const timePassed = now - parseInt(lastExit);
+    
+    // Se passou mais de 2 segundos, o utilizador fechou a aba anteriormente.
+    // Se passou menos, foi apenas um Refresh (F5).
+    if (timePassed > 2000) {
       localStorage.clear();
-    };
-    window.addEventListener('beforeunload', handleTabClose);
+      window.location.href = '/views/index.html'; // Redireciona para login
+      return; 
+    }
+  }
 
-    return () => {
-      window.removeEventListener('beforeunload', handleTabClose);
-    };
+  if (!storedUser && !hasAlerted.current) {
+    hasAlerted.current = true;
+    alert("Sessão expirada. Por favor, faça login.");
+    window.location.href = '/views/index.html';
+    return;
+  }
 
-  }, []);
+  // Se passou nas validações, carrega os dados
+  const user = JSON.parse(storedUser);
+  setUserData(user);
+  setUserAdmin(isAdmin());
+  setUserProfessor(isProfessor());
+  setUserStudent(isStudent());
+
+  // 2. Evento para registar o momento exato da saída
+  const handleUnload = () => {
+    if (localStorage.getItem('user')) {
+      localStorage.setItem('last_exit_time', Date.now().toString());
+    }
+  };
+
+  window.addEventListener('beforeunload', handleUnload);
+
+  return () => {
+    window.removeEventListener('beforeunload', handleUnload);
+  };
+}, []);
 
   const handleLogout = () => {
     localStorage.clear();
@@ -186,25 +202,49 @@ function Home() {
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
 
                 {/* Info 1: Salas */}
-                <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 hover:shadow-md transition-all">
-                  <div className="text-3xl mb-3">🏫</div>
-                  <h3 className="font-bold text-gray-800 mb-1">Salas de Aula</h3>
-                  <p className="text-sm text-gray-500">Acede ao átrio para entrar em sessões ao vivo ou criar a tua própria aula.</p>
-                </div>
+                {(userProfessor || userStudent) && (
+                  <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 hover:shadow-md transition-all">
+                    <div className="text-3xl mb-3">🏫</div>
+                    <h3 className="font-bold text-gray-800 mb-1">Salas de Aula</h3>
+                    <p className="text-sm text-gray-500">Acede ao átrio para entrar em sessões ao vivo ou criar a tua própria aula.</p>
+                  </div>
+                )}
 
-                {/* Info 2: Dúvidas */}
-                <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 hover:shadow-md transition-all">
-                  <div className="text-3xl mb-3">💬</div>
-                  <h3 className="font-bold text-gray-800 mb-1">Comunicação</h3>
-                  <p className="text-sm text-gray-500">Utiliza o chat em tempo real para tirar dúvidas com professores e colegas.</p>
-                </div>
+                {/* Info 2: Ficheiros */}
+                {(userProfessor || userStudent) && (
+                  <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 hover:shadow-md transition-all">
+                    <div className="text-3xl mb-3">📂</div>
+                    <h3 className="font-bold text-gray-800 mb-1">Gestão de Ficheiros da Aula</h3>
+                    <p className="text-sm text-gray-500">Gere os teus ficheiros e materiais de apoio na aba de documentos.</p>
+                  </div>
+                )}
 
-                {/* Info 3: Ficheiros */}
-                <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 hover:shadow-md transition-all">
-                  <div className="text-3xl mb-3">📂</div>
-                  <h3 className="font-bold text-gray-800 mb-1">Recursos</h3>
-                  <p className="text-sm text-gray-500">Gere os teus ficheiros e materiais de apoio na aba de documentos.</p>
-                </div>
+                {/* Info 3: Dúvidas doa Alunos*/}
+                {userStudent && (
+                  <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 hover:shadow-md transition-all">
+                    <div className="text-3xl mb-3">🙋‍♂️</div>
+                    <h3 className="font-bold text-gray-800 mb-1">As minhas Duvidas</h3>
+                    <p className="text-sm text-gray-500">Utiliza o chat em tempo real para tirar dúvidas com professores.</p>
+                  </div>
+                )}
+
+                {/* Info 4: Responder a Dúvidas dos Alunos */}
+                {userProfessor && (
+                  <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 hover:shadow-md transition-all">
+                    <div className="text-3xl mb-3">🙋‍♂️</div>
+                    <h3 className="font-bold text-gray-800 mb-1">Gestão de dúvidas em tempo real.</h3>
+                    <p className="text-sm text-gray-500">Utiliza o chat em tempo real para Responder a duvidas dos alunos.</p>
+                  </div>
+                )}
+
+                {/* Info 5: Registar Utilizadores */}
+                {userAdmin && (
+                  <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 hover:shadow-md transition-all">
+                    <div className="text-3xl mb-3">👤</div>
+                    <h3 className="font-bold text-gray-800 mb-1">Registo de Novo Utilizador</h3>
+                    <p className="text-sm text-gray-500">Registar um novo utilizxador no sistema.</p>
+                  </div>
+                )}
 
               </div>
 

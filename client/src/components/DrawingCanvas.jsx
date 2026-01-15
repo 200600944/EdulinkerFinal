@@ -1,15 +1,14 @@
-// DrawingCanvas.jsx
 import React, { useState, useRef, useEffect } from 'react';
 import { Stage, Layer, Line } from 'react-konva';
 
-const DrawingCanvas = ({ salaId, socket, userRole }) => { // <--- RECEBE O SOCKET AQUI
+const DrawingCanvas = ({ roomId, socket, userRole }) => { // <--- RECEBE O SOCKET AQUI
   const [lines, setLines] = useState([]);
   const isDrawing = useRef(false);
 
   const isProfessor = userRole?.toLowerCase() === 'professor';
 
   useEffect(() => {
-    if (!socket || !salaId) return;
+    if (!socket || !roomId) return;
 
     // Receber o histórico completo (disparado no join_room)
     socket.on('canvas_history', (history) => {
@@ -27,7 +26,7 @@ const DrawingCanvas = ({ salaId, socket, userRole }) => { // <--- RECEBE O SOCKE
       socket.off('draw_line');
       socket.off('clear_canvas');
     };
-  }, [salaId, socket]);
+  }, [roomId, socket]);
 
   // Esta função corre no momento exato em que clicas com o rato no quadro
   const handleMouseDown = (e) => {
@@ -69,7 +68,7 @@ const DrawingCanvas = ({ salaId, socket, userRole }) => { // <--- RECEBE O SOCKE
 
     // Enviamos a linha atualizada para o servidor para que os alunos vejam o mesmo traço
     socket.emit('draw_line', {
-      roomId: salaId,
+      roomId: roomId,
       line: lastLine,
       userRole: userRole
     });
@@ -77,15 +76,21 @@ const DrawingCanvas = ({ salaId, socket, userRole }) => { // <--- RECEBE O SOCKE
 
   return (
     <div className="w-full h-full bg-white border rounded-lg overflow-hidden">
-      {!isProfessor ?(
+      {!isProfessor ? (
         <div className=" top-2 right-2 z-10 bg-blue-100 text-blue-700 px-2 py-1 rounded text-[10px] font-bold">
           Modo Visualização
         </div>
-      ):(<button onClick={() => { setLines([]); socket.emit('clear_canvas', salaId); }}
+      ) : (<button onClick={() => {
+        setLines([]);
+        socket.emit('clear_canvas', {
+          roomId: roomId,
+          userRole: userRole
+        });
+      }}
         className="m-2 px-3 py-1 bg-red-500 text-white text-xs rounded">
         Limpar
       </button>)}
-      
+
       <Stage
         width={800}
         height={600}

@@ -9,7 +9,6 @@ export function useChat() {
     const [conversas, setConversas] = useState([]);
     const [mensagens, setMensagens] = useState([]);
     const [salaAtiva, setSalaAtiva] = useState(null);
-    // NOVO: Estado para utilizadores online na sala
     const [onlineUsers, setOnlineUsers] = useState([]);
 
     const userLogado = JSON.parse(localStorage.getItem('user') || '{}');
