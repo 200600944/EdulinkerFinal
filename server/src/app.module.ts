@@ -15,6 +15,9 @@ import { ChatGateway } from './gateway/chat.gateway';
 
 // Services
 import { AppService } from './app.service';
+import { ChatService } from './services/chat.service';
+import { SharedFilesService } from './services/shared_files.service';
+import { UserService } from './services/user.service';
 
 // Entities
 import { User } from './entities/user.entity';
@@ -49,8 +52,8 @@ import { Shared_Files } from './entities/shared_files.entity';
       }),
     }),
 
-    // Adicionamos a Mensagem aqui para o Repository estar disponível
-    TypeOrmModule.forFeature([User, Role, Message,Room,Shared_Files]), 
+    // Repositórios disponíveis para os Services injetarem
+    TypeOrmModule.forFeature([User, Role, Message, Room, Shared_Files]), 
   ],
   controllers: [
     AppController, 
@@ -60,6 +63,9 @@ import { Shared_Files } from './entities/shared_files.entity';
   ],
   providers: [
     AppService, 
+    ChatService,  
+    SharedFilesService,
+    UserService, 
     ChatGateway 
   ],
 })

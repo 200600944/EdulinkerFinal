@@ -1,17 +1,12 @@
-import { Controller, Post, UseInterceptors, UploadedFile, Body, Get, Param, Res } from '@nestjs/common';
+import { Controller, Post, UseInterceptors, UploadedFile, Body, Get, Param, Res, BadRequestException, InternalServerErrorException } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
-import { Shared_Files } from '../entities/shared_files.entity';
+import { SharedFilesService } from '../services/shared_files.service'; // Ajusta o caminho
 import { diskStorage } from 'multer';
 import { extname } from 'path';
 
 @Controller('shared_files')
 export class Shared_FilesController {
-  constructor(
-    @InjectRepository(Shared_Files)
-    private readonly fileRepository: Repository<Shared_Files>,
-  ) { }
+  constructor(private readonly sharedFilesService: SharedFilesService) {}
 
   @Post('upload')
   @UseInterceptors(FileInterceptor('file', {
@@ -24,35 +19,24 @@ export class Shared_FilesController {
     }),
   }))
   async upload(@UploadedFile() file: Express.Multer.File, @Body() body: any) {
-    // O segredo está aqui: converter para Number
-    const newFile = this.fileRepository.create({
-      room_id: Number(body.roomId),
-      user_id: Number(body.userId),
-      file_name: file.originalname,
-      file_url: file.filename,
-      file_size: Number(file.size) / 1024,
-    });
-
-    return await this.fileRepository.save(newFile);
+    if (!file) throw new BadRequestException('Nenhum ficheiro enviado.');
+    
+    try {
+      return await this.sharedFilesService.registerFile(file, body);
+    } catch (error) {
+      throw new InternalServerErrorException('Erro ao registar ficheiro na base de dados.');
+    }
   }
 
   @Get('room/:roomId')
-  async findAllByRoom(@Param('roomId') roomId: string) { // Recebemos como string (padrão de URL)
+  async findAllByRoom(@Param('roomId') roomId: string) {
+    const idNum = Number(roomId);
+    if (isNaN(idNum)) return [];
+
     try {
-      const idNum = Number(roomId);
-
-      // Se o ID não for um número válido, retornamos vazio imediatamente
-      if (isNaN(idNum)) {
-        return [];
-      }
-
-      return await this.fileRepository.find({
-        where: { room_id: idNum }, // Usamos o número convertido
-        order: { created_at: 'DESC' },
-      });
+      return await this.sharedFilesService.findAllByRoom(idNum);
     } catch (error) {
-
-      console.error("Erro ao buscar ficheiros no DB:", error);
+      console.error("Erro ao buscar ficheiros:", error);
       return [];
     }
   }
@@ -60,9 +44,9 @@ export class Shared_FilesController {
   @Get('download/:filename')
   download(@Param('filename') filename: string, @Res() res) {
     const path = './uploads';
+    // A lógica de download permanece no controller pois envolve o objeto de resposta (@Res)
     return res.download(`${path}/${filename}`, (err) => {
       if (err) {
-        console.error("Erro ao fazer download:", err);
         res.status(404).send("Ficheiro não encontrado");
       }
     });

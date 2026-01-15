@@ -8,7 +8,7 @@ function Lobby() {
         authorized, loading, user, isProfessor, rooms, isCreating, setIsCreating, 
         novoNomeSala, setNovoNomeSala, texto, setTexto, mensagens, salaAtiva, 
         setSalaAtiva, onlineUsers, socket, messagesEndRef, handleCreateClass, 
-        handleSairDaAula, handleDeleteRoom
+        handleSairDaAula, handleDeleteRoom,handleSend
     } = useLoby();
 
     // Renderização de estado de carregamento enquanto valida a autenticação

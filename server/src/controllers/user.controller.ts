@@ -1,82 +1,40 @@
-import { Controller, Post, Get, Body, UnauthorizedException, BadRequestException } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
-import { User } from '../entities/user.entity';
-import { Role } from '../entities/role.entity';
+import { Controller, Post, Get, Body, InternalServerErrorException } from '@nestjs/common';
+import { UserService } from '../services/user.service';
 import { CreateUserDto } from '../dto/create-user.dto';
 
 @Controller('auth')
 export class UserController {
-    constructor(
-        @InjectRepository(User)
-        private userRepository: Repository<User>,
+    constructor(private readonly userService: UserService) { }
 
-        @InjectRepository(Role)
-        private roleRepository: Repository<Role>,
-    ) { }
-
-    //Login
     @Post('login')
     async login(@Body() body: any) {
-        const { email, password } = body;
-
-        const user = await this.userRepository.findOne({
-            where: { email },
-            relations: ['role'] // como sabemos se é admin
-        });
-
-        if (!user || user.password !== password) {
-            throw new UnauthorizedException('Dados Inválidos!');
-        }
-
+        // O Controller apenas chama o Service e devolve a resposta amigável
+        const userData = await this.userService.validateUser(body.email, body.password);
+        
         return {
             message: 'Bem-vindo!',
-            user: {
-                id: user.id,
-                nome: user.nome,
-                email: user.email,
-                role: user.role?.name // Retorna o nome da role para o frontend validar o isAdmin()
-            }
+            user: userData
         };
     }
 
-    //Registo
     @Post('register')
     async register(@Body() createDto: CreateUserDto) {
-        // 1. Verificar se o email já existe
-        const userExists = await this.userRepository.findOne({ where: { email: createDto.email } });
-        if (userExists) {
-            throw new BadRequestException('Este email já está registado.');
+        try {
+            await this.userService.register(createDto);
+            return { message: 'Utilizador criado com sucesso!' };
+        } catch (error) {
+            // Se o erro já for uma exceção do Nest (como BadRequest), ele propaga automaticamente
+            throw error;
         }
-
-        // 2. Criar a instância do utilizador (mapeia nome, email, password)
-        const newUser = this.userRepository.create(createDto);
-
-        // 3. Atribuir a Role manualmente para garantir a gravação da FK
-        // Usamos 'createDto' que é o nome correto da variável no teu código
-        if (createDto.role_id) {
-            // Atribuímos um objeto parcial com o ID à relação 'role'
-            // Isso força o TypeORM a gravar o valor na coluna role_id do MySQL
-            newUser.role = { id: Number(createDto.role_id) } as Role;
-        }
-
-        // 4. Gravar no MySQL
-        await this.userRepository.save(newUser);
-
-        return { message: 'Utilizador criado com sucesso!' };
     }
-    
-    //Perfis
-    @Get('roles') // Isto cria a rota http://localhost:3000/auth/roles (se o prefixo for auth)
+
+    @Get('roles')
     async getRoles() {
-        // Vamos buscar todas as roles diretamente do repositório
-        return await this.roleRepository.find();
+        return await this.userService.findAllRoles();
     }
 
-    //Users
-    @Get('users') // Isto cria a rota http://localhost:3000/auth/roles (se o prefixo for auth)
+    @Get('users')
     async getUsers() {
-        // Vamos buscar todas as roles diretamente do repositório
-        return await this.userRepository.find({relations: ['role']});
+        return await this.userService.findAllUsers();
     }
 }
