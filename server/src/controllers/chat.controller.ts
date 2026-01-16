@@ -1,12 +1,16 @@
 import { Controller, Get, Post, Patch, Param, Body, InternalServerErrorException, BadRequestException } from '@nestjs/common';
 import { ChatService } from '../services/chat.service';
+// Importamos os decorators do Swagger
+import { ApiTags, ApiOperation, ApiResponse, ApiParam, ApiBody } from '@nestjs/swagger';
 
+@ApiTags('Chat') // Vincula este controlador à tag 'Chat' que definiste no main.ts
 @Controller('chat')
 export class ChatController {
     constructor(private readonly chatService: ChatService) { }
 
-    // Procura salas de chat ativas para a vista do Professor, garantindo que apenas as ativas aparecem
     @Get('rooms')
+    @ApiOperation({ summary: 'Listar salas de chat ativas', description: 'Retorna todas as salas que não foram desativadas (is_active = true).' })
+    @ApiResponse({ status: 200, description: 'Lista de salas retornada com sucesso.' })
     async getRooms() {
         try {
             return await this.chatService.getActiveChatRooms();
@@ -15,8 +19,11 @@ export class ChatController {
         }
     }
 
-    // Obtém o histórico completo de mensagens de uma sala específica para carregar no chat
     @Get('messages/:roomId')
+    @ApiOperation({ summary: 'Obter histórico de mensagens', description: 'Recupera todas as mensagens de uma sala específica para carregar no chat.' })
+    @ApiParam({ name: 'roomId', description: 'ID numérico da sala', example: '1' })
+    @ApiResponse({ status: 200, description: 'Histórico de mensagens retornado.' })
+    @ApiResponse({ status: 400, description: 'ID de sala inválido.' })
     async getChatHistory(@Param('roomId') roomId: string) {
         const id = parseInt(roomId);
         if (isNaN(id)) throw new BadRequestException("ID de sala inválido.");
@@ -28,8 +35,9 @@ export class ChatController {
         }
     }
 
-    // Lista as salas de dúvidas ativas criadas por um aluno específico
     @Get('student-rooms/:userId')
+    @ApiOperation({ summary: 'Listar salas de dúvidas de um aluno', description: 'Retorna as salas criadas por um estudante específico.' })
+    @ApiResponse({ status: 200, description: 'Salas do aluno encontradas.' })
     async getStudentRooms(@Param('userId') userId: number) {
         try {
             return await this.chatService.getRoomsByStudent(userId);
@@ -38,8 +46,9 @@ export class ChatController {
         }
     }
 
-    // Regista uma nova mensagem na base de dados para iniciar ou continuar uma conversa
     @Post('send')
+    @ApiOperation({ summary: 'Gravar nova mensagem', description: 'Regista uma mensagem na BD para persistência do histórico.' })
+    @ApiBody({ description: 'Dados da mensagem', schema: { example: { room_id: 1, user_id: 2, content: 'Olá!' } } })
     async sendMessage(@Body() body: any) {
         try {
             return await this.chatService.createMessage(body);
@@ -48,8 +57,9 @@ export class ChatController {
         }
     }
 
-    // Cria uma nova sala (Aula ou Chat) e garante que o status inicial é ativo
     @Post('create-room')
+    @ApiOperation({ summary: 'Criar nova sala', description: 'Cria uma sala do tipo "aula" ou "chat" (dúvida).' })
+    @ApiResponse({ status: 201, description: 'Sala criada com sucesso.' })
     async createRoom(@Body() data: { name: string, owner_id: number, room_type: string }) {
         try {
             return await this.chatService.createRoom(data);
@@ -58,8 +68,8 @@ export class ChatController {
         }
     }
 
-    // Obtém todas as salas do tipo 'aula' que estão ativas para preencher o Lobby
     @Get('class-rooms')
+    @ApiOperation({ summary: 'Listar salas de aula', description: 'Obtém apenas salas do tipo "aula" que estão ativas.' })
     async getClassRooms() {
         try {
             return await this.chatService.getActiveClasses();
@@ -68,8 +78,10 @@ export class ChatController {
         }
     }
 
-    // Desativa logicamente uma sala alterando a flag is_active para falso (Soft Delete)
     @Patch('deactivate-room/:id')
+    @ApiOperation({ summary: 'Encerrar uma sala', description: 'Desativa a sala (Soft Delete) para que não apareça mais nas listagens ativas.' })
+    @ApiResponse({ status: 200, description: 'Sala encerrada com sucesso.' })
+    @ApiResponse({ status: 400, description: 'ID inválido ou sala já encerrada.' })
     async deactivateRoom(@Param('id') id: string) {
         const roomId = parseInt(id);
         if (isNaN(roomId)) throw new BadRequestException("ID inválido.");
