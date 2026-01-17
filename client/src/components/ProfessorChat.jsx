@@ -34,7 +34,7 @@ function ProfessorChat() {
     if (!authorized) return null;
 
     return (
-        <div className="w-full h-full bg-white rounded-2xl shadow-xl border-2 border-dashed border-gray-200 hover:border-blue-300 transition-colors">
+        <div className="w-full h-fit bg-white rounded-2xl shadow-xl border-2 border-dashed border-gray-200 hover:border-blue-300 transition-colors">
             <div className="p-4">
                 
                 {/* CABEÇALHO: Exibe o total de conversas pendentes ou ativas */}

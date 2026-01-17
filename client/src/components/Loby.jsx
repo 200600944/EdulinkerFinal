@@ -44,7 +44,7 @@ function Lobby() {
     });
 
     return (
-        <div className="w-full h-full bg-white rounded-2xl shadow-xl border-2 border-dashed border-gray-200 overflow-hidden">
+        <div className="w-full h-fit bg-white rounded-2xl shadow-xl border-2 border-dashed border-gray-200 overflow-hidden">
             
             {!activeRoom ? (
                 /* --- VISTA DE LISTA (LOBBY): Listagem de salas disponíveis para entrar ou criar --- */
@@ -58,49 +58,50 @@ function Lobby() {
                             </span>
                         </div>
                     </div>
-
-                    <div className="w-full transition-all duration-300">
-                        {!isCreating ? (
-                            /* Botão de ação inicial para o Professor expandir o formulário de criação */
-                            <button
-                                onClick={() => {
-                                    setIsCreating(true);
-                                    setNewRoomName('');
-                                }}
-                                className="group w-full p-6 bg-white border-2 border-dashed rounded-2xl flex items-center justify-center gap-3 text-blue-600 font-bold hover:border-blue-500 hover:bg-blue-50 transition-all shadow-sm"
-                            >
-                                <span className="text-2xl group-hover:scale-125 transition-transform">+</span>
-                                Criar uma nova sala de aula
-                            </button>
-                        ) : (
-                            /* Formulário dinâmico para definir o nome da nova sala */
-                            <div className="w-full p-6 bg-blue-50 border-2 border-blue-200 rounded-2xl animate-in zoom-in-95 duration-200">
-                                <label className="block text-sm font-bold text-blue-800 mb-2">Nome da Sala de Aula:</label>
-                                <div className="flex gap-3">
-                                    <input
-                                        autoFocus
-                                        type="text"
-                                        value={newRoomName}
-                                        onChange={(e) => setNewRoomName(e.target.value)}
-                                        className="flex-1 p-3 rounded-xl border-2 border-blue-100 outline-none focus:border-blue-500 transition-all font-medium"
-                                        placeholder="Ex: Aula de Matemática - 10ºA"
-                                    />
-                                    <button
-                                        onClick={handleCreateClass}
-                                        className="bg-blue-600 text-white px-6 py-3 rounded-xl font-bold hover:bg-blue-700 transition-all shadow-md"
-                                    >
-                                        Confirmar
-                                    </button>
-                                    <button
-                                        onClick={() => setIsCreating(false)}
-                                        className="bg-white text-gray-500 px-6 py-3 rounded-xl font-bold border border-gray-200 hover:bg-gray-100 transition-all"
-                                    >
-                                        Cancelar
-                                    </button>
+                    {isProfessorUser && (
+                        <div className="w-full transition-all duration-300">
+                            {!isCreating ? (
+                                /* Botão de ação inicial para o Professor expandir o formulário de criação */
+                                <button
+                                    onClick={() => {
+                                        setIsCreating(true);
+                                        setNewRoomName('');
+                                    }}
+                                    className="group w-full p-6 bg-white border-2 border-dashed rounded-2xl flex items-center justify-center gap-3 text-blue-600 font-bold hover:border-blue-500 hover:bg-blue-50 transition-all shadow-sm"
+                                >
+                                    <span className="text-2xl group-hover:scale-125 transition-transform">+</span>
+                                    Criar uma nova sala de aula
+                                </button>
+                            ) : (
+                                /* Formulário dinâmico para definir o nome da nova sala */
+                                <div className="w-full p-6 bg-blue-50 border-2 border-blue-200 rounded-2xl animate-in zoom-in-95 duration-200">
+                                    <label className="block text-sm font-bold text-blue-800 mb-2">Nome da Sala de Aula:</label>
+                                    <div className="flex gap-3">
+                                        <input
+                                            autoFocus
+                                            type="text"
+                                            value={newRoomName}
+                                            onChange={(e) => setNewRoomName(e.target.value)}
+                                            className="flex-1 p-3 rounded-xl border-2 border-blue-100 outline-none focus:border-blue-500 transition-all font-medium"
+                                            placeholder="Ex: Aula de Matemática - 10ºA"
+                                        />
+                                        <button
+                                            onClick={handleCreateClass}
+                                            className="bg-blue-600 text-white px-6 py-3 rounded-xl font-bold hover:bg-blue-700 transition-all shadow-md"
+                                        >
+                                            Confirmar
+                                        </button>
+                                        <button
+                                            onClick={() => setIsCreating(false)}
+                                            className="bg-white text-gray-500 px-6 py-3 rounded-xl font-bold border border-gray-200 hover:bg-gray-100 transition-all"
+                                        >
+                                            Cancelar
+                                        </button>
+                                    </div>
                                 </div>
-                            </div>
-                        )}
-                    </div>
+                            )}
+                        </div>
+                    )}
 
                     {/* Renderização das salas de aula ativas vindas da base de dados */}
                     <div className="grid gap-4 mt-4">
@@ -177,7 +178,7 @@ function Lobby() {
 
                         {/* Área Central: Quadro Branco Interativo */}
                         <div className="flex-[2] bg-gray-200 p-4 border-r overflow-hidden flex flex-col">
-                            <div className="bg-white rounded-xl shadow-inner h-full overflow-hidden border-2 border-gray-300">
+                            <div className="bg-white rounded-xl shadow-inner h-fit overflow-hidden border-2 border-gray-300">
                                 <DrawingCanvas roomId={activeRoom.room_id} socket={socket} userRole={user.role} />
                             </div>
                         </div>

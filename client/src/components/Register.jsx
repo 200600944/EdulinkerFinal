@@ -122,7 +122,7 @@ function Register() {
 
             {/* SECÇÃO: Gestão de Utilizadores Registados */}
             <div className="lg:col-span-2">
-                <div className="bg-white p-8 rounded-2xl shadow-xl border border-gray-100 h-full">
+                <div className="bg-white p-8 rounded-2xl shadow-xl border border-gray-100 h-fit">
                     <div className="flex justify-between items-center mb-6">
                         <h2 className="text-2xl font-bold text-gray-800">Utilizadores na Plataforma</h2>
                     </div>

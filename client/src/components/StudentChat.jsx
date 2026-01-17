@@ -35,7 +35,7 @@ function StudentChat() {
   if (!authorized) return null;
 
   return (
-    <div className="w-full h-full bg-white rounded-2xl shadow-xl border-2 border-dashed border-gray-200 hover:border-blue-300 transition-colors">
+    <div className="w-full h-fit bg-white rounded-2xl shadow-xl border-2 border-dashed border-gray-200 hover:border-blue-300 transition-colors">
       <div className="h-full flex flex-col">
         {!activeRoom ? (
           /* --- LISTA DE CONVERSAS: Histórico de dúvidas do aluno --- */

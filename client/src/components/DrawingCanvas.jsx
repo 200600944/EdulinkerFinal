@@ -84,7 +84,7 @@ const DrawingCanvas = ({ roomId, socket, userRole }) => {
   };
 
   return (
-    <div className="w-full h-full bg-white border rounded-lg overflow-hidden">
+    <div className="w-full h-fit bg-white border rounded-lg overflow-hidden">
       
       {/* Interface de controlo: Mostra modo visualização para alunos ou botão limpar para professor */}
       {!isProfessorUser ? (

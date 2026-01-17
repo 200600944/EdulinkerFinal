@@ -14,8 +14,8 @@ export const useStudentChat = () => {
     const { 
         messages, 
         sendMessage, 
-        setSalaAtiva: setActiveRoom, 
-        salaAtiva: activeRoom 
+        setActiveRoom, 
+        activeRoom 
     } = useChat();
 
     const API_BASE = import.meta.env.VITE_API_URL;

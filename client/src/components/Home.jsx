@@ -190,7 +190,7 @@ function Home() {
 
           {/* Conteúdo da aba Bem-Vindo */}
           {activeTab === 'welcome' && (
-            <div className="w-full h-full flex flex-col gap-6 animate-in fade-in duration-700">
+            <div className="w-full h-fit flex flex-col gap-6 animate-in fade-in duration-700">
               <div className="bg-gradient-to-r from-blue-700 to-indigo-800 rounded-3xl p-8 text-white shadow-lg">
                 <h2 className="text-3xl font-black mb-2">Olá, {userData.nome}! 👋</h2>
                 <p className="text-blue-100 text-lg">
